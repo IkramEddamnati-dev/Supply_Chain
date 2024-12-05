@@ -74,24 +74,25 @@ contract SupplyChain {
 
     // Ajouter une matière première
     function addRawMaterial(
-        string memory _name,
-        string memory _description,
-        uint256 _price,
-        string memory _image,
-        string memory _origin
-    ) public onlyByOwner {
-        rmsCtr++;
-        rms[rmsCtr] = RW({
-            id: rmsCtr,
-            name: _name,
-            description: _description,
-            price: _price,
-            userId: 0,
-            image: _image,
-            origin: _origin
-        });
-        emit RawMaterialAdded(rmsCtr, _name);
-    }
+    string memory _name,
+    string memory _description,
+    uint256 _price,
+    string memory _image,
+    string memory _origin
+) public onlyByOwner {
+    rmsCtr++;
+    rms[rmsCtr] = RW({
+        id: rmsCtr,
+        name: _name,
+        description: _description,
+        price: _price,
+        userId: 0,
+        image: _image,
+        origin: _origin
+    });
+    emit RawMaterialAdded(rmsCtr, _name);
+}
+
 
     // Ajouter un utilisateur
     function addUser(
@@ -190,4 +191,21 @@ contract SupplyChain {
         require(_productId > 0 && _productId <= productCtr, "Produit inexistant");
         return productHistories[_productId];
     }
+   // Fonction pour obtenir toutes les matières premières
+function getAllRawMaterials() public view returns (RW[] memory) {
+    uint256 count = rmsCtr; // Nombre total de matières premières
+
+    // Créer un tableau dynamique avec le nombre total de matières premières
+    RW[] memory allRawMaterials = new RW[](count);
+
+    // Remplir le tableau avec toutes les matières premières
+    for (uint256 i = 1; i <= rmsCtr; i++) {
+        allRawMaterials[i - 1] = rms[i];
+    }
+
+    return allRawMaterials;
+}
+
+
+
 }

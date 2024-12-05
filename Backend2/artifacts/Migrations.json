@@ -1,4 +1,4 @@
-      {
+{
   "contractName": "Migrations",
   "abi": [
     {
@@ -176,7 +176,7 @@
                         "name": "msg",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 536,
+                        "referencedDeclaration": 581,
                         "src": "192:3:0",
                         "typeDescriptions": {
                           "typeIdentifier": "t_magic_message",
@@ -280,7 +280,7 @@
                         "name": "msg",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 536,
+                        "referencedDeclaration": 581,
                         "src": "262:3:0",
                         "typeDescriptions": {
                           "typeIdentifier": "t_magic_message",
@@ -626,7 +626,7 @@
                                   "overloadedDeclarations": [
                                     null
                                   ],
-                                  "referencedDeclaration": 536,
+                                  "referencedDeclaration": 581,
                                   "type": "msg",
                                   "value": "msg"
                                 },
@@ -763,7 +763,7 @@
                                   "overloadedDeclarations": [
                                     null
                                   ],
-                                  "referencedDeclaration": 536,
+                                  "referencedDeclaration": 581,
                                   "type": "msg",
                                   "value": "msg"
                                 },
@@ -958,12 +958,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x445777b1fcD21e0817867eda3bc6bB1458da689A",
-      "transactionHash": "0xde94e1c98c241cc833c0e5fe733fdbfdcc1ec604a2075c68ba81f58408cb4603"
+      "address": "0x085DE1A6B6843fA7505978A6B53b4ae2b80B8eA8",
+      "transactionHash": "0x6f85f390b1505b83abd216ad7aa791725ab74f99d0c5b40cf13179df20fb8cf3"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-12-04T10:58:45.878Z",
+  "updatedAt": "2024-12-04T23:43:51.062Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {}

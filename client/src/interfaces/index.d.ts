@@ -64,15 +64,14 @@ export interface IEvent {
   status: string;
 }
 
-export interface IStore {
+export interface IRMS {
   id: number;
-  gsm: string;
-  email: string;
-  title: string;
-  isActive: boolean;
-  createdAt: string;
-  address: IAddress;
-  products: IProduct[];
+  name: string;
+  description: string;
+  price: number;
+  image: (IFile & { thumbnailUrl?: string })[];
+  origin: IAddress;
+  
 }
 
 export interface IOrder {

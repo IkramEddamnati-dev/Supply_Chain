@@ -20,14 +20,13 @@ import Toolbar from "@mui/material/Toolbar";
 import Box from "@mui/material/Box";
 import Autocomplete from "@mui/material/Autocomplete";
 import Stack from "@mui/material/Stack";
-import FormControl from "@mui/material/FormControl";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import BrightnessHighIcon from "@mui/icons-material/BrightnessHigh";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import i18n from "../../i18n";
-import type { IOrder, IStore, ICourier, IIdentity } from "../../interfaces";
+import type { IOrder, ICourier, IIdentity, IRMS } from "../../interfaces";
 import { ColorModeContext } from "../../contexts";
 
 interface IOptions {
@@ -82,23 +81,25 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = () => {
     },
   });
 
-  const { refetch: refetchStores } = useList<IStore>({
-    resource: "stores",
+  const { refetch: refetchStores } = useList<IRMS>({
+    resource: "raw_materials",
     config: {
       filters: [{ field: "q", operator: "contains", value }],
     },
     queryOptions: {
       enabled: false,
       onSuccess: (data) => {
-        const storeOptionGroup = data.data.map((item) => {
+        console.log("Data from API:", data); // Vérifiez la structure exacte
+        const storeOptionGroup = data.raw_materials.map((item:any) => {
           return {
-            label: `${item.title} - ${item.address.text}`,
-            link: `/stores/edit/${item.id}`,
+            label: `${item.origin} - ${item.origin.text}`, // Assurez-vous de la structure de `origin`
+            link: `/raw_materials/edit/${item.id}`,
             category: t("stores.stores"),
           };
         });
         setOptions((prevOptions) => [...prevOptions, ...storeOptionGroup]);
-      },
+      }
+      ,
     },
   });
 

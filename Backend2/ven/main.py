@@ -4,6 +4,8 @@ from pathlib import Path
 from pydantic import BaseModel
 from web3 import Web3
 from model import *
+from fastapi.middleware.cors import CORSMiddleware
+
 supply_chain_path = Path("./artifacts/SupplyChain.json")
 with supply_chain_path.open("r") as file:
     supply_chain_data = json.load(file)
@@ -12,7 +14,13 @@ CHAIN_ID=1337
 
 # Connexion à Ganache (en utilisant le réseau local)
 w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:7545'))  
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Vous pouvez spécifier les origines autorisées
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Vérifiez si la connexion a réussi
 if not w3.is_connected():
     raise Exception("Impossible de se connecter à Ganache")
@@ -78,7 +86,7 @@ async def add_user(user: UserCreate):
 
 
 
-@app.post("/add_raw_material/")
+@app.post("/raw_materials/")
 async def add_raw_material(raw_material: RawMaterialCreate):
     nonce = w3.eth.get_transaction_count(owner_address)
     tx = contract.functions.addRawMaterial(
@@ -110,5 +118,29 @@ async def get_product_history(product_id: int):
     try:
         history = contract.functions.getProductHistory(product_id).call()
         return {"history": history}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/raw_materials/")
+async def get_all_raw_materials():
+    try:
+        # Appel à la fonction `getAllRawMaterials` du contrat
+        raw_materials_data = contract.functions.getAllRawMaterials().call()
+
+        # Transformation des données en un format lisible
+        raw_materials_list = [
+            {
+                "id": raw_material[0],  # Première valeur est l'ID
+                "name": raw_material[1],  # Deuxième valeur est le nom
+                "description": raw_material[2],  # Troisième valeur est la description
+                "price": raw_material[3],  # Quatrième valeur est le prix
+                "image": raw_material[4],  # Cinquième valeur est l'image
+                "origin": raw_material[5],  # Sixième valeur est l'origine
+            }
+            for raw_material in raw_materials_data
+        ]
+
+        return {"raw_materials": raw_materials_list}
+    
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

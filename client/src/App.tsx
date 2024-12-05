@@ -38,7 +38,7 @@ import { ColorModeContextProvider } from "./contexts";
 import { Header, Title } from "./components";
 import { useAutoLoginForDemo } from "./hooks";
 
-const API_URL = "http://127.0.0.1:7545";
+const API_URL = "http://127.0.0.1:8000";
 
 const App: React.FC = () => {
   // This hook is used to automatically login the user.
@@ -92,6 +92,7 @@ const App: React.FC = () => {
                     icon: <ShoppingBagOutlinedIcon />,
                   },
                 },
+                
                 {
                   name: "users",
                   list: "/customers",
@@ -118,10 +119,10 @@ const App: React.FC = () => {
                   },
                 },
                 {
-                  name: "stores",
-                  list: "/stores",
-                  create: "/stores/new",
-                  edit: "/stores/:id/edit",
+                  name: "raw_materials",
+                  list: "/raw_materials",
+                  create: "/raw_materials/new",
+                  edit: "/raw_materials/:id/edit",
                   meta: {
                     icon: <StoreOutlinedIcon />,
                   },
@@ -187,7 +188,7 @@ const App: React.FC = () => {
                     <Route path="new" element={<ProductCreate />} />
                   </Route>
 
-                  <Route path="/stores">
+                  <Route path="/raw_materials">
                     <Route index element={<StoreList />} />
                     <Route path="new" element={<StoreCreate />} />
                     <Route path=":id/edit" element={<StoreEdit />} />
