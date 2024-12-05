@@ -5,7 +5,7 @@ import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { EditButton, ShowButton, TextFieldComponent } from "@refinedev/mui";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import { IconButton } from "@mui/material";
+import { Avatar, IconButton } from "@mui/material";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import { IRMS } from "../../../interfaces";
 
@@ -31,9 +31,25 @@ export const StoreTable = () => {
       renderCell: ({ row }) => <Typography>#{row.id}</Typography>,
     },
     {
-      field: "image",
-      headerName: "image",
-      minWidth: 200,
+      field: "avatar",
+      headerName: t("products.fields.images.label"),
+      renderCell: function render({ row }) {
+        return (
+          <Avatar
+            variant="rounded"
+            sx={{
+              width: 32,
+              height: 32,
+            }}
+            src={row.image}
+            alt={row.name}
+          />
+        );
+      },
+      width: 64,
+      align: "center",
+      headerAlign: "center",
+      sortable: false,
     },
     {
       field: "name",
@@ -47,10 +63,14 @@ export const StoreTable = () => {
       minWidth: 132,
     },
     {
-      field: "origin",
-      headerName: "Origin",
-      minWidth: 132,
-    },
+        field: "origin",
+        headerName: "Origin",
+        flex: 2,
+        width: 356,
+        renderCell: function render({ row }) {
+          return <TextFieldComponent value={row.origin?.text} />;
+        },
+      },
     {
       field: "description",
       headerName: "Description",
@@ -65,7 +85,7 @@ export const StoreTable = () => {
       renderCell: ({ row }) => (
         <IconButton
           sx={{ cursor: "pointer" }}
-          onClick={() => edit("stores", row.id)}
+          onClick={() => edit("raw_materials", row.id)}
         >
           <VisibilityOutlined color="action" />
         </IconButton>

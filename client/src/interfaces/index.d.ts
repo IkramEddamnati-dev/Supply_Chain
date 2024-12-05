@@ -69,7 +69,7 @@ export interface IRMS {
   name: string;
   description: string;
   price: number;
-  image: (IFile & { thumbnailUrl?: string })[];
+  image:  string;
   origin: IAddress;
   
 }

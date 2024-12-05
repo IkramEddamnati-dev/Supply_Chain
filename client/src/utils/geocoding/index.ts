@@ -14,7 +14,7 @@ export type Place = {
   lat: string;
   lon: string;
   display_name: string;
-  address: {
+  origin: {
     amenity: string;
     road: string;
     neighbourhood: string;
@@ -37,16 +37,16 @@ export const getAddressWithLatLng = async ({ lat, lng }: LatLng) => {
     if (!data) return null;
 
     return {
-      address: data.display_name,
+      origin: data.display_name,
     };
   } catch (error) {
     return null;
   }
 };
 
-export const getLatLngWithAddress = async (address: string) => {
+export const getLatLngWithAddress = async (origin: string) => {
   try {
-    const query = `q=${address}&api_key=${API_KEY}`;
+    const query = `q=${origin}&api_key=${API_KEY}`;
     const response = await fetch(`${API_URL}/search?${query}`);
     const data: Place[] = await response.json();
     const lat = data?.[0]?.lat || null;

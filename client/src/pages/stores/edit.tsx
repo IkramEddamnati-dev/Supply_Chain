@@ -56,7 +56,7 @@ export const StoreEdit = () => {
             marginBottom: "24px",
           }}
         >
-          {form.store?.title ?? (
+          {form.store?.name ?? (
             <Skeleton
               variant="text"
               sx={{ fontSize: "24px", width: "120px" }}
@@ -68,7 +68,7 @@ export const StoreEdit = () => {
         <Grid item xs={12} md={6} lg={5}>
           {isFormIsDisabled ? (
             <Box>
-              <StoreInfoCard store={form?.store} />
+              {/* <StoreInfoCard store={form?.store} /> */}
               <Stack
                 mt="24px"
                 px="16px"

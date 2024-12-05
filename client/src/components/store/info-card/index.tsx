@@ -13,35 +13,25 @@ import ArrowDropDownCircleOutlinedIcon from "@mui/icons-material/ArrowDropDownCi
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
-import type { IStore } from "../../../interfaces";
+import type { IRMS } from "../../../interfaces";
 import { StoreStatus } from "../status";
 
 type Props = {
-  store?: IStore;
+  store?: IRMS;
 };
 
 export const StoreInfoCard = (props: Props) => {
   const t = useTranslate();
-  const { address, email, isActive, gsm } = props?.store || {};
+  const { origin, description, price, image } = props?.store || {};
 
   return (
     <Paper>
-      <Info
-        icon={
-          <ArrowDropDownCircleOutlinedIcon
-            sx={{
-              transform: "rotate(-90deg)",
-            }}
-          />
-        }
-        label={t("products.fields.isActive.label")}
-        value={<StoreStatus value={isActive || false} size="small" />}
-      />
+     
       <Divider />
       <Info
         icon={<PlaceOutlinedIcon />}
         label={t("stores.fields.address")}
-        value={address?.text}
+        value={origin?.text}
         sx={{
           height: "80px",
         }}
@@ -50,13 +40,13 @@ export const StoreInfoCard = (props: Props) => {
       <Info
         icon={<AccountCircleOutlinedIcon />}
         label={t("stores.fields.email")}
-        value={email}
+        value={description}
       />
       <Divider />
       <Info
         icon={<PhoneOutlinedIcon />}
         label={t("stores.fields.gsm")}
-        value={gsm}
+        value={price}
       />
     </Paper>
   );

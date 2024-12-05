@@ -20,6 +20,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Box from "@mui/material/Box";
 import Autocomplete from "@mui/material/Autocomplete";
 import Stack from "@mui/material/Stack";
+import FormControl from "@mui/material/FormControl";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
@@ -89,17 +90,15 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = () => {
     queryOptions: {
       enabled: false,
       onSuccess: (data) => {
-        console.log("Data from API:", data); // Vérifiez la structure exacte
-        const storeOptionGroup = data.raw_materials.map((item:any) => {
+        const storeOptionGroup = data.data.map((item) => {
           return {
-            label: `${item.origin} - ${item.origin.text}`, // Assurez-vous de la structure de `origin`
-            link: `/raw_materials/edit/${item.id}`,
+            label: `${item.origin} - ${item.origin.text}`,
+            link: `/stores/edit/${item.id}`,
             category: t("stores.stores"),
           };
         });
         setOptions((prevOptions) => [...prevOptions, ...storeOptionGroup]);
-      }
-      ,
+      },
     },
   });
 

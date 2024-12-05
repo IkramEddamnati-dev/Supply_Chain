@@ -39,8 +39,8 @@ contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 
 # Adresse de l'owner (propriétaire du contrat)
-owner_address = "0x4115F405eAA384551455219aD1C7F4a53e86f51E"  # Par défaut, l'adresse générée par Ganache
-private_key = "0x37cb69bd78274d9fb6b16a7fba58a3496cf2967a57ac786cb01d3a4d3e73f0ce"  # Utilisé pour signer les transactions
+owner_address = "0x1b8f1A385db53d8a882a2f199362BAb921E7a8b8"  # Par défaut, l'adresse générée par Ganache
+private_key = "0x9778410360c9a3622550fc266aac832840a009775e7d515e7d44a25b2e017f3e"  # Utilisé pour signer les transactions
 
 
 # Route pour obtenir les utilisateurs par rôle
@@ -85,32 +85,39 @@ async def add_user(user: UserCreate):
         raise HTTPException(status_code=400, detail="Transaction failed")
 
 
-
 @app.post("/raw_materials/")
 async def add_raw_material(raw_material: RawMaterialCreate):
-    nonce = w3.eth.get_transaction_count(owner_address)
-    tx = contract.functions.addRawMaterial(
-        raw_material.name,
-        raw_material.description,
-        raw_material.price,
-        raw_material.image,
-        raw_material.origin
-    ).build_transaction({
-        'chainId': 1337,
-        'gas': 2000000,
-        'gasPrice': w3.to_wei('20', 'gwei'),
-        'nonce': nonce,
-    })
+    try:
+        # Construction de la transaction
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.addRawMaterial(
+            raw_material.name,
+            raw_material.description,
+            raw_material.price,
+            raw_material.image,
+            raw_material.origin,
+            int(raw_material.latitude * 10**6),  # Conversion en int pour Solidity
+            int(raw_material.longitude * 10**6)  # Conversion en int pour Solidity
+        ).build_transaction({
+            'chainId': 1337,  # ID de votre réseau (1337 = Ganache local)
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
 
-    signed_tx = w3.eth.account.sign_transaction(tx, private_key)
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+    
+    # Attendre que la transaction soit minée
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
-    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-    if receipt.status == 1:
-        return {"status": "success", "tx_hash": tx_hash.hex()}
-    else:
-        raise HTTPException(status_code=400, detail="Transaction failed")
+        # Vérification du statut de la transaction
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Route pour obtenir l'historique d'un produit
 @app.get("/get_product_history/{product_id}")
@@ -120,7 +127,6 @@ async def get_product_history(product_id: int):
         return {"history": history}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
 @app.get("/raw_materials/")
 async def get_all_raw_materials():
     try:
@@ -130,12 +136,18 @@ async def get_all_raw_materials():
         # Transformation des données en un format lisible
         raw_materials_list = [
             {
-                "id": raw_material[0],  # Première valeur est l'ID
-                "name": raw_material[1],  # Deuxième valeur est le nom
-                "description": raw_material[2],  # Troisième valeur est la description
-                "price": raw_material[3],  # Quatrième valeur est le prix
-                "image": raw_material[4],  # Cinquième valeur est l'image
-                "origin": raw_material[5],  # Sixième valeur est l'origine
+                "id": raw_material[0],  # ID
+                "name": raw_material[1],  # Nom
+                "description": raw_material[2],  # Description
+                "price": raw_material[3],  # Prix
+                "image": raw_material[5],  # Image
+                "origin": {
+                    "text": raw_material[6][0],  # Texte de l'adresse
+                    "coordinate": [
+                raw_material[6][1][0] / 10**6,  # Convertir la latitude de micro-degrés en degrés
+                raw_material[6][1][1] / 10**6,  # Convertir la longitude de micro-degrés en degrés
+            ], 
+                },
             }
             for raw_material in raw_materials_data
         ]
@@ -144,3 +156,37 @@ async def get_all_raw_materials():
     
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+@app.post("/add_product/")
+async def add_product(product: ProductCreate):
+    try:
+        # Construction de la transaction pour appeler addProduct dans le contrat
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.addProduct(
+            product.name,
+            product.description,
+            product.rwIds,  # Liste des IDs des matières premières
+            product.manufacturerId,
+            product.categoryId,
+            product.image
+        ).build_transaction({
+            'chainId': 1337,  # ID de votre réseau (1337 = Ganache local)
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
+
+        # Signer la transaction
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        # Attendre que la transaction soit minée
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Vérification du statut de la transaction
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

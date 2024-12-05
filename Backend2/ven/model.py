@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import BaseModel
 
 
@@ -18,4 +19,13 @@ class RawMaterialCreate(BaseModel):
     description: str
     price: int
     image: str
-    origin: str
+    origin: str  # Adresse sous forme de texte
+    latitude: float
+    longitude: float
+class ProductCreate(BaseModel):
+    name: str
+    description: str
+    rwIds: List[int]  # Liste des IDs des matières premières
+    manufacturerId: int
+    categoryId: int
+    image: str

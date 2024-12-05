@@ -5,14 +5,11 @@ import Card from "@mui/material/Card";
 import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import FormHelperText from "@mui/material/FormHelperText";
-import FormLabel from "@mui/material/FormLabel";
 import TextField from "@mui/material/TextField";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import InputMask from "react-input-mask";
-import type { useStoreForm } from "./useStoreForm";
+import InputAdornment from "@mui/material/InputAdornment";
+import { useStoreForm } from "./useStoreForm";
 
 type Props = {
   action: "create" | "edit";
@@ -22,39 +19,23 @@ type Props = {
 
 export const StoreForm = (props: Props) => {
   const t = useTranslate();
-  const {
-    register,
-    control,
-    formState: { errors },
-    saveButtonProps,
-    setValue,
-    handleAddressChange,
-  } = props.form;
+  const { register, control, formState: { errors }, saveButtonProps, setValue, handleAddressChange } = props.form;
 
   return (
     <form>
-      <Card
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "24px",
-          padding: "24px",
-        }}
-      >
+      <Card sx={{ display: "flex", flexDirection: "column", gap: "24px", padding: "24px" }}>
+        {/* Name Field */}
+        
         <FormControl fullWidth>
           <Controller
-            name="title"
+            name="name"
             control={control}
             defaultValue=""
-            rules={{
-              required: t("errors.required.field", {
-                field: "title",
-              }),
-            }}
+            rules={{ required: t("errors.required.field", { field: "name" }) }}
             render={({ field }) => (
               <TextField
                 {...field}
-                label={t("stores.fields.title")}
+                label="Name"
                 required
                 size="small"
                 margin="none"
@@ -62,77 +43,19 @@ export const StoreForm = (props: Props) => {
               />
             )}
           />
-          {errors.title && (
-            <FormHelperText error>{errors.title.message}</FormHelperText>
-          )}
+          {errors.name && <FormHelperText error>{errors.name.message}</FormHelperText>}
         </FormControl>
 
-        <FormControl>
-          <FormLabel
-            sx={{
-              marginBottom: "8px",
-            }}
-          >
-            {t("products.fields.isActive.label")}
-          </FormLabel>
-          <Controller
-            control={control}
-            name="isActive"
-            defaultValue={false}
-            rules={{
-              validate: (value) => {
-                if (value === undefined) {
-                  return t("errors.required.field", {
-                    field: "isActive",
-                  });
-                }
-                return true;
-              },
-            }}
-            render={({ field }) => {
-              return (
-                <ToggleButtonGroup
-                  id="isActive"
-                  {...field}
-                  exclusive
-                  color="primary"
-                  onChange={(_, newValue) => {
-                    setValue("isActive", newValue, {
-                      shouldValidate: true,
-                    });
-
-                    return newValue;
-                  }}
-                >
-                  <ToggleButton value={true}>
-                    {t("stores.fields.isActive.true")}
-                  </ToggleButton>
-                  <ToggleButton value={false}>
-                    {t("stores.fields.isActive.false")}
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              );
-            }}
-          />
-          {errors.isActive && (
-            <FormHelperText error>{errors.isActive.message}</FormHelperText>
-          )}
-        </FormControl>
-
+        {/* Description Field */}
         <FormControl fullWidth>
           <Controller
-            name="email"
+            name="description"
             control={control}
             defaultValue=""
-            rules={{
-              required: t("errors.required.field", {
-                field: "email",
-              }),
-            }}
             render={({ field }) => (
               <TextField
                 {...field}
-                label={t("stores.fields.email")}
+                label="Description"
                 required
                 size="small"
                 margin="none"
@@ -140,25 +63,40 @@ export const StoreForm = (props: Props) => {
               />
             )}
           />
-          {errors.email && (
-            <FormHelperText error>{errors.email.message}</FormHelperText>
-          )}
+          {errors.description && <FormHelperText error>{errors.description.message}</FormHelperText>}
         </FormControl>
 
+        {/* Image URL Field */}
         <FormControl fullWidth>
           <Controller
-            name="address.text"
+            name="image"
             control={control}
             defaultValue=""
-            rules={{
-              required: t("errors.required.field", {
-                field: "address.text",
-              }),
-            }}
             render={({ field }) => (
               <TextField
                 {...field}
-                label={t("stores.fields.address")}
+                label="Image URL"
+                required
+                size="small"
+                margin="none"
+                variant="outlined"
+              />
+            )}
+          />
+          {errors.image && <FormHelperText error>{errors.image.message}</FormHelperText>}
+        </FormControl>
+
+        {/* Origin Field */}
+        <FormControl fullWidth>
+          <Controller
+            name="origin"
+            control={control}
+            defaultValue=""
+            rules={{ required: t("errors.required.field", { field: "origin" }) }}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Origin"
                 required
                 size="small"
                 margin="none"
@@ -170,80 +108,45 @@ export const StoreForm = (props: Props) => {
               />
             )}
           />
-          {errors.address && (
-            <FormHelperText error>{errors.address.message}</FormHelperText>
-          )}
+          {errors.origin && <FormHelperText error>{errors.origin.message}</FormHelperText>}
         </FormControl>
 
+        {/* Price Field */}
         <FormControl fullWidth>
           <Controller
-            name="gsm"
+            name="price"
             control={control}
-            defaultValue=""
+            defaultValue={0}
             rules={{
-              required: t("errors.required.field", {
-                field: "gsm",
-              }),
+              required: t("errors.required.field", { field: "price" }),
             }}
             render={({ field }) => (
-              <InputMask {...field} mask="(999) 999 99 99" disabled={false}>
-                {/* @ts-expect-error False alarm */}
-                {(props: TextFieldProps) => (
-                  <TextField
-                    {...props}
-                    label={t("stores.fields.gsm")}
-                    size="small"
-                    margin="none"
-                    variant="outlined"
-                  />
-                )}
-              </InputMask>
+              <TextField
+                {...field}
+                variant="outlined"
+                label="Price"
+                type="number"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                }}
+              />
             )}
           />
-          {errors.gsm && (
-            <FormHelperText error>{errors.gsm.message}</FormHelperText>
-          )}
+          {errors.price && <FormHelperText error>{errors.price.message}</FormHelperText>}
         </FormControl>
 
-        {/* this is a workaround for registering fields to ant design form*/}
-        {/* otherwise these fields will be null */}
-        <Box
-          sx={{
-            display: "none",
-          }}
-        >
-          <input
-            {...register("address.coordinate.0", {
-              required: t("errors.required.field", {
-                field: "address.coordinate.0",
-              }),
-            })}
-            type="hidden"
-          />
-          <input
-            {...register("address.coordinate.1", {
-              required: t("errors.required.field", {
-                field: "address.coordinate.1",
-              }),
-            })}
-            type="hidden"
-          />
+        <Box sx={{ display: "none" }}>
+          <input {...register("latitude", { required: true })} type="hidden" />
+          <input {...register("longitude", { required: true })} type="hidden" />
         </Box>
+
         <Divider />
         <Stack direction="row" justifyContent="space-between">
-          <Button
-            variant="text"
-            color="inherit"
-            onClick={() => {
-              if (props.onCancel) {
-                props.onCancel();
-              }
-            }}
-          >
-            {t("buttons.cancel")}
+          <Button variant="text" color="inherit" onClick={props.onCancel}>
+            Cancel
           </Button>
           <Button {...saveButtonProps} variant="contained">
-            {t("buttons.save")}
+            Save
           </Button>
         </Stack>
       </Card>
