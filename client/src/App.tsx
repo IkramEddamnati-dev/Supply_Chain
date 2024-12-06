@@ -30,32 +30,39 @@ import { DashboardPage } from "./pages/dashboard";
 import { OrderList, OrderShow } from "./pages/orders";
 import { CustomerShow, CustomerList } from "./pages/customers";
 import { CourierList, CourierCreate, CourierEdit } from "./pages/couriers";
-import { AuthPage } from "./pages/auth";
+import AuthPage from "./pages/auth";
 import { StoreList, StoreEdit, StoreCreate } from "./pages/stores";
 import { ProductEdit, ProductList, ProductCreate } from "./pages/products";
 import { CategoryList } from "./pages/categories";
 import { ColorModeContextProvider } from "./contexts";
 import { Header, Title } from "./components";
-import { useAutoLoginForDemo } from "./hooks";
+import PrivateRoute from "./PrivateRoute";
+
+import { useState, useEffect } from "react";
 
 const API_URL = "http://127.0.0.1:7545";
 
 const App: React.FC = () => {
-  // This hook is used to automatically login the user.
-  // We use this hook to skip the login page and demonstrate the application more quickly.
-  const { loading } = useAutoLoginForDemo();
-
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<string>("");
   const { t, i18n } = useTranslation();
+  const TOKEN_KEY = "refine-auth-token";
+  // Simulate user authentication (replace this with your actual login mechanism)
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (token) {
+      // Replace with actual logic to fetch user data and role
+      setIsAuthenticated(true);
+    }
+  }, []);
+
   const i18nProvider = {
     translate: (key: string, params: object) => t(key, params),
     changeLocale: (lang: string) => i18n.changeLanguage(lang),
     getLocale: () => i18n.language,
   };
 
-  if (loading) {
-    return null;
-  }
-
+ 
   return (
     <BrowserRouter>
       <KBarProvider>
@@ -68,12 +75,6 @@ const App: React.FC = () => {
               dataProvider={dataProvider(API_URL)}
               authProvider={authProvider}
               i18nProvider={i18nProvider}
-              options={{
-                syncWithLocation: true,
-                warnWhenUnsavedChanges: true,
-                breadcrumb: false,
-                useNewQueryKeys: true,
-              }}
               notificationProvider={useNotificationProvider}
               resources={[
                 {
@@ -92,6 +93,7 @@ const App: React.FC = () => {
                     icon: <ShoppingBagOutlinedIcon />,
                   },
                 },
+                
                 {
                   name: "users",
                   list: "/customers",
@@ -118,10 +120,10 @@ const App: React.FC = () => {
                   },
                 },
                 {
-                  name: "stores",
-                  list: "/stores",
-                  create: "/stores/new",
-                  edit: "/stores/:id/edit",
+                  name: "raw_materials",
+                  list: "/raw_materials",
+                  create: "/raw_materials/new",
+                  edit: "/raw_materials/:id/edit",
                   meta: {
                     icon: <StoreOutlinedIcon />,
                   },
@@ -135,150 +137,120 @@ const App: React.FC = () => {
                     icon: <MopedOutlined />,
                   },
                 },
+            
               ]}
             >
+              
               <Routes>
+                
                 <Route
                   element={
-                    <Authenticated
-                      key="authenticated-routes"
-                      fallback={<CatchAllNavigate to="/login" />}
-                    >
-                      <ThemedLayoutV2 Header={Header} Title={Title}>
-                        <Box
-                          sx={{
-                            maxWidth: "1200px",
-                            marginLeft: "auto",
-                            marginRight: "auto",
-                          }}
-                        >
-                          <Outlet />
-                        </Box>
-                      </ThemedLayoutV2>
-                    </Authenticated>
-                  }
-                >
-                  <Route index element={<DashboardPage />} />
-
-                  <Route path="/orders">
-                    <Route index element={<OrderList />} />
-                    <Route path=":id" element={<OrderShow />} />
-                  </Route>
-                  <Route
-                    path="/customers"
-                    element={
-                      <CustomerList>
-                        <Outlet />
-                      </CustomerList>
-                    }
-                  >
-                    <Route path=":id" element={<CustomerShow />} />
-                  </Route>
-
-                  <Route
-                    path="/products"
-                    element={
-                      <ProductList>
-                        <Outlet />
-                      </ProductList>
-                    }
-                  >
-                    <Route path=":id/edit" element={<ProductEdit />} />
-                    <Route path="new" element={<ProductCreate />} />
-                  </Route>
-
-                  <Route path="/stores">
-                    <Route index element={<StoreList />} />
-                    <Route path="new" element={<StoreCreate />} />
-                    <Route path=":id/edit" element={<StoreEdit />} />
-                  </Route>
-
-                  <Route path="/categories" element={<CategoryList />} />
-
-                  <Route path="/couriers">
-                    <Route
-                      path=""
-                      element={
-                        <CourierList>
-                          <Outlet />
-                        </CourierList>
-                      }
-                    >
-                      <Route path="new" element={<CourierCreate />} />
-                    </Route>
-
-                    <Route path=":id/edit" element={<CourierEdit />} />
-                  </Route>
-                </Route>
-
-                <Route
-                  element={
-                    <Authenticated key="auth-pages" fallback={<Outlet />}>
-                      <NavigateToResource resource="dashboard" />
-                    </Authenticated>
+                    <ThemedLayoutV2 Header={Header} Title={Title}>
+                      <Outlet />
+                    </ThemedLayoutV2>
                   }
                 >
                   <Route
-                    path="/login"
-                    element={
-                      <AuthPage
-                        type="login"
-                        formProps={{
-                          defaultValues: {
-                            email: "demo@refine.dev",
-                            password: "demodemo",
-                          },
-                        }}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/register"
-                    element={
-                      <AuthPage
-                        type="register"
-                        formProps={{
-                          defaultValues: {
-                            email: "demo@refine.dev",
-                            password: "demodemo",
-                          },
-                        }}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/forgot-password"
-                    element={
-                      <AuthPage
-                        type="forgotPassword"
-                        formProps={{
-                          defaultValues: {
-                            email: "demo@refine.dev",
-                          },
-                        }}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/update-password"
-                    element={<AuthPage type="updatePassword" />}
-                  />
+              path="/"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<DashboardPage />} />
+              }
+            />
+             <Route
+              path="/orders"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<OrderList />} />
+              }
+            />
+            <Route
+              path="/orders/:id"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<OrderShow />} />
+              }
+            />
+            <Route
+              path="/customers"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<CustomerList />} />
+              }
+            />
+            <Route
+              path="/customers/:id"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<CustomerShow />} />
+              }
+            />
+            <Route
+              path="/products"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ProductList />} />
+              }
+            />
+            <Route
+              path="/products/new"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ProductCreate />} />
+              }
+            />
+            <Route
+              path="/products/:id/edit"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ProductEdit />} />
+              }
+            />
+            <Route
+              path="/stores"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreList />} />
+              }
+            />
+            <Route
+              path="/stores/new"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreCreate />} />
+              }
+            />
+            <Route
+              path="/stores/:id/edit"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreEdit />} />
+              }
+            />
+            <Route
+              path="/categories"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<CategoryList />} />
+              }
+            />
+            <Route
+              path="/couriers"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<CourierList />} />
+              }
+            />
+            <Route
+              path="/couriers/new"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<CourierCreate />} />
+              }
+            />
+            <Route
+              path="/couriers/:id/edit"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<CourierEdit />} />
+              }
+            />
+
                 </Route>
 
-                <Route
-                  element={
-                    <Authenticated key="catch-all">
-                      <ThemedLayoutV2 Header={Header} Title={Title}>
-                        <Outlet />
-                      </ThemedLayoutV2>
-                    </Authenticated>
-                  }
-                >
-                  <Route path="*" element={<ErrorComponent />} />
-                </Route>
+                {/* Login and Registration Routes */}
+                
+                <Route path="/login" element={<AuthPage type="login" />} />
+                <Route path="/register" element={<AuthPage type="register" />} />
+
+                {/* Catch-all route for errors */}
+                <Route path="*" element={<ErrorComponent />} />
               </Routes>
-              <UnsavedChangesNotifier />
-              <DocumentTitleHandler />
             </Refine>
           </RefineSnackbarProvider>
         </ColorModeContextProvider>
