@@ -22,10 +22,25 @@ class RawMaterialCreate(BaseModel):
     origin: str  # Adresse sous forme de texte
     latitude: float
     longitude: float
-class ProductCreate(BaseModel):
+
+class AddCategoryRequest(BaseModel):
+    title: str
+
+class AddProductRequest(BaseModel):
     name: str
     description: str
-    rwIds: List[int]  # Liste des IDs des matières premières
+    rwIds: list[int]  # Liste des IDs des matières premières
     manufacturerId: int
     categoryId: int
     image: str
+    price: float  
+
+class EditProductRequest(BaseModel):
+    name: str
+    description: str
+    rwIds: List[int]
+    categoryId: int
+    image: str
+
+class EditCategoryRequest(BaseModel):
+    title: str

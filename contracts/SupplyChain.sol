@@ -43,6 +43,7 @@ contract SupplyChain {
         string name;
         string description;
         uint256[] rwIds;
+        uint256 price; // Ajout du prix
         Category category;
         uint256 manufacturerId;
         uint256 distributorId;
@@ -129,46 +130,67 @@ contract SupplyChain {
         emit CategoryAdded(categoryCtr, _title);
     }
 
-    // Ajouter un produit
-function addProduct(
-    string memory _name,
-    string memory _description,
-    uint256[] memory _rwIds,
-    uint256 _manufacturerId,
-    uint256 _categoryId,
-    string memory _image
-) public onlyByOwner {
-    // Vérification des IDs de matières premières
-    for (uint256 i = 0; i < _rwIds.length; i++) {
-        require(_rwIds[i] > 0 && _rwIds[i] <= rmsCtr, "Invalid raw material ID");
+    // Ajouter un utilisateur
+    function addUser(
+        string memory _name,
+        string memory _email,
+        string memory _password,
+        string memory _role
+    ) public {
+        require(bytes(_name).length > 0, "Name cannot be empty");
+        require(bytes(_email).length > 0, "Email cannot be empty");
+        require(bytes(_password).length > 0, "Password cannot be empty");
+        userCount++;
+        users[userCount] = User({
+            id: userCount,
+            name: _name,
+            email: _email,
+            passwordHash: keccak256(abi.encodePacked(_password)),
+            role: _role
+        });
     }
 
-    // Vérification de la validité de la catégorie
-    require(_categoryId > 0 && _categoryId <= categoryCtr, "Invalid category ID");
+    // Ajouter un produit
+    function addProduct(
+        string memory _name,
+        string memory _description,
+        uint256[] memory _rwIds,
+        uint256 _manufacturerId,
+        uint256 _categoryId,
+        uint256 _price,  // Ajouter le prix comme paramètre
+        string memory _image
+    ) public onlyByOwner {
+        // Vérification des IDs de matières premières
+        for (uint256 i = 0; i < _rwIds.length; i++) {
+            require(_rwIds[i] > 0 && _rwIds[i] <= rmsCtr, "Invalid raw material ID");
+        }
 
-    // Incrémentation du compteur de produits
-    productCtr++;
+        // Vérification de la validité de la catégorie
+        require(_categoryId > 0 && _categoryId <= categoryCtr, "Invalid category ID");
 
-    // Création du produit
-    productStock[productCtr] = Product({
-        id: productCtr,
-        name: _name,
-        description: _description,
-        rwIds: _rwIds,
-        category: categories[_categoryId],
-        manufacturerId: _manufacturerId,
-        distributorId: 0,
-        retailerId: 0,
-        currentHandlerId: _manufacturerId,
-        stage: STAGE.Manufacture,  // Le stade initial est la fabrication
-        isActive: true,
-        image: _image
-    });
+        // Incrémentation du compteur de produits
+        productCtr++;
 
-    // Émettre l'événement
-    emit ProductAdded(productCtr, _name);
-}
+        // Création du produit
+        productStock[productCtr] = Product({
+            id: productCtr,
+            name: _name,
+            description: _description,
+            rwIds: _rwIds,
+            price: _price,  // Assignation du prix
+            category: categories[_categoryId],
+            manufacturerId: _manufacturerId,
+            distributorId: 0,
+            retailerId: 0,
+            currentHandlerId: _manufacturerId,
+            stage: STAGE.Manufacture,  // Le stade initial est la fabrication
+            isActive: true,
+            image: _image
+        });
 
+        // Émettre l'événement
+        emit ProductAdded(productCtr, _name);
+    }
 
     // Obtenir un produit par ID
     function getProductById(uint256 _productId) public view returns (Product memory) {
@@ -176,80 +198,58 @@ function addProduct(
         return productStock[_productId];
     }
 
-    // Obtenir une catégorie par ID
-    function getCategoryById(uint256 _categoryId) public view returns (Category memory) {
-        require(_categoryId > 0 && _categoryId <= categoryCtr, "Catégorie inexistante");
-        return categories[_categoryId];
-    }
+    // Obtenir tous les produits
+    function getAllProducts() public view returns (Product[] memory) {
+        uint256 count = productCtr; // Nombre total de produits
+        Product[] memory allProducts = new Product[](count);
 
-    // Obtenir une matière première par ID
-    function getRawMaterialById(uint256 _rawMaterialId) public view returns (RW memory) {
-        require(_rawMaterialId > 0 && _rawMaterialId <= rmsCtr, "Matière première inexistante");
-        return rms[_rawMaterialId];
-    }
-
-    // Editer un produit
-    function editProduct(
-        uint256 _productId,
-        string memory _name,
-        string memory _description,
-        uint256[] memory _rwIds,
-        uint256 _categoryId,
-        string memory _image
-    ) public onlyByOwner {
-        require(_productId > 0 && _productId <= productCtr, "Produit inexistant");
-        require(_categoryId > 0 && _categoryId <= categoryCtr, "Catégorie inexistante");
-
-        Product storage product = productStock[_productId];
-
-        for (uint256 i = 0; i < _rwIds.length; i++) {
-            require(_rwIds[i] > 0 && _rwIds[i] <= rmsCtr, "Invalid raw material ID");
+        for (uint256 i = 1; i <= count; i++) {
+            allProducts[i - 1] = productStock[i];
         }
 
-        product.name = _name;
-        product.description = _description;
-        product.rwIds = _rwIds;
-        product.category = categories[_categoryId];
-        product.image = _image;
-
-        emit ProductUpdated(_productId, _name);
+        return allProducts;
     }
 
-    // Editer une catégorie
-    function editCategory(uint256 _categoryId, string memory _title) public onlyByOwner {
-        require(_categoryId > 0 && _categoryId <= categoryCtr, "Catégorie inexistante");
+    // Obtenir toutes les catégories
+function getAllCategories() public view returns (Category[] memory) {
+    uint256 count = categoryCtr; // Nombre total de catégories
+    // Créer un tableau dynamique avec le nombre total de catégories
+    Category[] memory allCategories = new Category[](count);
 
-        Category storage category = categories[_categoryId];
-        category.title = _title;
-
-        emit CategoryUpdated(_categoryId, _title);
+    // Remplir le tableau allCategories avec les catégories
+    for (uint256 i = 1; i <= count; i++) {
+        allCategories[i - 1] = categories[i]; // Assurez-vous que 'categories' commence à 1
     }
 
-    // Editer une matière première
-    function editRawMaterial(
-        uint256 _rawMaterialId,
-        string memory _name,
-        string memory _description,
-        uint256 _price,
-        string memory _image,
-        string memory _originText, // Texte de l'adresse
-        int256 _latitude,          // Latitude
-        int256 _longitude          // Longitude
-    ) public onlyByOwner {
-        require(_rawMaterialId > 0 && _rawMaterialId <= rmsCtr, "Matière première inexistante");
+    return allCategories;
+}
 
-        RW storage rawMaterial = rms[_rawMaterialId];
 
-        rawMaterial.name = _name;
-        rawMaterial.description = _description;
-        rawMaterial.price = _price;
-        rawMaterial.image = _image;
-        rawMaterial.origin = Address({
-            text: _originText,
-            coordinate: [_latitude, _longitude] // Remplissage des coordonnées
-        });
+    // Obtenir les utilisateurs par rôle
+    function getUsersByRole(string memory _role) public view returns (User[] memory) {
+        uint256 count = userCount; // Nombre total d'utilisateurs
+        uint256 userCountByRole = 0;
 
-        emit RawMaterialUpdated(_rawMaterialId, _name);
+        // Compter le nombre d'utilisateurs avec le rôle spécifié
+        for (uint256 i = 1; i <= count; i++) {
+            if (keccak256(abi.encodePacked(users[i].role)) == keccak256(abi.encodePacked(_role))) {
+                userCountByRole++;
+            }
+        }
+
+        // Créer un tableau dynamique avec le nombre d'utilisateurs avec ce rôle
+        User[] memory usersWithRole = new User[](userCountByRole);
+        uint256 index = 0;
+
+        // Ajouter les utilisateurs avec le rôle spécifié
+        for (uint256 i = 1; i <= count; i++) {
+            if (keccak256(abi.encodePacked(users[i].role)) == keccak256(abi.encodePacked(_role))) {
+                usersWithRole[index] = users[i];
+                index++;
+            }
+        }
+
+        return usersWithRole;
     }
 
     // Mettre à jour le stade d'un produit
@@ -272,16 +272,13 @@ function addProduct(
         emit ProductStageUpdated(_productId, _newStage);
     }
 
-    // Fonction pour obtenir toutes les matières premières
-    function getAllRawMaterials() public view returns (RW[] memory) {
+ function getAllRawMaterials() public view returns (RW[] memory) {
         uint256 count = rmsCtr; // Nombre total de matières premières
-
         // Créer un tableau dynamique avec le nombre total de matières premières
         RW[] memory allRawMaterials = new RW[](count);
         for (uint256 i = 1; i <= count; i++) {
             allRawMaterials[i - 1] = rms[i];
         }
-
-        return allRawMaterials;
+         return allRawMaterials;
     }
 }

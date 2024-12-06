@@ -39,8 +39,8 @@ contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 
 # Adresse de l'owner (propriétaire du contrat)
-owner_address = "0x1b8f1A385db53d8a882a2f199362BAb921E7a8b8"  # Par défaut, l'adresse générée par Ganache
-private_key = "0x9778410360c9a3622550fc266aac832840a009775e7d515e7d44a25b2e017f3e"  # Utilisé pour signer les transactions
+owner_address = "0xe5AAE843188A4d89517E9EAa2Ef50c25F55fb296"  # Par défaut, l'adresse générée par Ganache
+private_key = "0x405aebccfad500734bdccd232708fd9b9196131295eeeabf05a551029a7921a5"  # Utilisé pour signer les transactions
 
 
 # Route pour obtenir les utilisateurs par rôle
@@ -156,37 +156,147 @@ async def get_all_raw_materials():
     
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-@app.post("/add_product/")
-async def add_product(product: ProductCreate):
+# Ajouter une catégorie
+@app.post("/add_category/")
+def add_category(request: AddCategoryRequest):
     try:
-        # Construction de la transaction pour appeler addProduct dans le contrat
-        nonce = w3.eth.get_transaction_count(owner_address)
-        tx = contract.functions.addProduct(
-            product.name,
-            product.description,
-            product.rwIds,  # Liste des IDs des matières premières
-            product.manufacturerId,
-            product.categoryId,
-            product.image
-        ).build_transaction({
-            'chainId': 1337,  # ID de votre réseau (1337 = Ganache local)
-            'gas': 2000000,
-            'gasPrice': w3.to_wei('20', 'gwei'),
-            'nonce': nonce,
-        })
-
-        # Signer la transaction
-        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-
-        # Attendre que la transaction soit minée
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
-        # Vérification du statut de la transaction
-        if receipt.status == 1:
-            return {"status": "success", "tx_hash": tx_hash.hex()}
-        else:
-            raise HTTPException(status_code=400, detail="Transaction failed")
+        tx = contract.functions.addCategory(request.title).transact({'from': w3.eth.accounts[0]})
+        w3.eth.wait_for_transaction_receipt(tx)
+        return {"message": "Category added successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Ajouter un produit
+@app.post("/products/")
+def add_product(request: AddProductRequest):
+    try:
+        # Construction de la transaction pour ajouter un produit
+        tx = contract.functions.addProduct(
+            request.name,
+            request.description,
+            request.rwIds,
+            request.manufacturerId,
+            request.categoryId,
+            request.image,
+            request.price  # Assurez-vous de transmettre le prix ici
+        ).transact({'from': w3.eth.accounts[0]})
+        
+        # Attente de la transaction
+        w3.eth.wait_for_transaction_receipt(tx)
+        return {"message": "Product added successfully"}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Récupérer une catégorie par ID
+@app.get("/get_category/{category_id}")
+def get_category(category_id: int):
+    try:
+        category = contract.functions.getCategoryById(category_id).call()
+        if category[0] == 0:
+            raise HTTPException(status_code=404, detail="Category not found")
+        return {
+            "id": category[0],
+            "title": category[1],
+            "isActive": category[2]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Récupérer une matière première par ID
+@app.get("/get_raw_material/{raw_material_id}")
+def get_raw_material(raw_material_id: int):
+    try:
+        raw_material = contract.functions.getRawMaterialById(raw_material_id).call()
+        if raw_material[0] == 0:
+            raise HTTPException(status_code=404, detail="Raw material not found")
+        return {
+            "id": raw_material[0],
+            "name": raw_material[1],
+            "description": raw_material[2],
+            "price": raw_material[3],
+            "userId": raw_material[4],
+            "image": raw_material[5],
+            "origin": {
+                "text": raw_material[6],
+                "coordinate": raw_material[7]
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Modifier un produit
+@app.put("/edit_product/{product_id}")
+def edit_product(product_id: int, request: EditProductRequest):
+    try:
+        tx = contract.functions.editProduct(
+            product_id,
+            request.name,
+            request.description,
+            request.rwIds,
+            request.categoryId,
+            request.image
+        ).transact({'from': w3.eth.accounts[0]})
+        w3.eth.wait_for_transaction_receipt(tx)
+        return {"message": "Product updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Modifier une catégorie
+@app.put("/edit_category/{category_id}")
+def edit_category(category_id: int, request: EditCategoryRequest):
+    try:
+        tx = contract.functions.editCategory(category_id, request.title).transact({'from': w3.eth.accounts[0]})
+        w3.eth.wait_for_transaction_receipt(tx)
+        return {"message": "Category updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/products/")
+async def get_all_products():
+    try:
+        # Appel de la fonction `getAllProducts` du contrat
+        products_data = contract.functions.getAllProducts().call()
+
+        # Transformation des données en un format lisible
+        products_list = [
+            {
+                "id": product[0],  # ID du produit
+                "name": product[1],  # Nom
+                "description": product[2],  # Description
+                "rawMaterialIds": product[3],  # Liste des IDs des matières premières utilisées
+                "manufacturerId": product[4],  # ID du fabricant
+                "categoryId": product[5],  # ID de la catégorie
+                "image": product[6],  # URL de l'image
+                "isActive": product[7],  # Statut d'activation
+            }
+            for product in products_data
+        ]
+
+        return {"products": products_list}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/products/manufacturer/{manufacturer_id}")
+async def get_products_by_manufacturer_id(manufacturer_id: int):
+    try:
+        # Appel de la fonction `getProductsByManufacturerId` du contrat
+        products_data = contract.functions.getProductsByManufacturerId(manufacturer_id).call()
+
+        # Transformation des données en un format lisible
+        products_list = [
+            {
+                "id": product[0],  # ID du produit
+                "name": product[1],  # Nom
+                "description": product[2],  # Description
+                "rawMaterialIds": product[3],  # Liste des IDs des matières premières utilisées
+                "manufacturerId": product[4],  # ID du fabricant
+                "categoryId": product[5],  # ID de la catégorie
+                "image": product[6],  # URL de l'image
+                "isActive": product[7],  # Statut d'activité
+            }
+            for product in products_data
+        ]
+
+        return {"products": products_list}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
