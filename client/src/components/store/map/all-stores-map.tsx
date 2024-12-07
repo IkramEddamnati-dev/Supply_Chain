@@ -19,7 +19,7 @@ export const AllStoresMap = () => {
     fetch("http://127.0.0.1:8000/raw_materials")
       .then((response) => response.json())
       .then((data) => {
-        console.log("Fetched data:", data.raw_materials);
+        console.log("Fetched data:", data);
         setRawMaterials(data.raw_materials);
       })
       .catch((error) => console.error("Error fetching raw materials:", error));

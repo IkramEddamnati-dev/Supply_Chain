@@ -1,4 +1,5 @@
 import json
+from typing import Any
 from fastapi import FastAPI, HTTPException
 from pathlib import Path
 from pydantic import BaseModel
@@ -39,12 +40,12 @@ contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 
 # Adresse de l'owner (propriétaire du contrat)
-owner_address = "0xe5AAE843188A4d89517E9EAa2Ef50c25F55fb296"  # Par défaut, l'adresse générée par Ganache
-private_key = "0x405aebccfad500734bdccd232708fd9b9196131295eeeabf05a551029a7921a5"  # Utilisé pour signer les transactions
+owner_address = "0x53C11588f217fdb6beaFFaa58ABa02051029caA8"  # Par défaut, l'adresse générée par Ganache
+private_key = "0x9f0920b5b7b7f76feb563859ab0f892d0611ab98c67c6144cc8880c055bf2cc9"  # Utilisé pour signer les transactions
 
 
 # Route pour obtenir les utilisateurs par rôle
-@app.get("/get_users_by_role/{role}", response_model=list[User2])
+@app.get("/users/{role}", response_model=list[User2])
 async def get_users_by_role(role: str):
     try:
         # Appeler la fonction du contrat pour récupérer les utilisateurs par rôle
@@ -152,7 +153,7 @@ async def get_all_raw_materials():
             for raw_material in raw_materials_data
         ]
 
-        return {"raw_materials": raw_materials_list}
+        return raw_materials_list
     
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -166,28 +167,42 @@ def add_category(request: AddCategoryRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Ajouter un produit
 @app.post("/products/")
 def add_product(request: AddProductRequest):
     try:
-        # Construction de la transaction pour ajouter un produit
+        # Validation des IDs de matières premières
+        if any(rw_id <= 0 for rw_id in request.rwIds):
+            raise HTTPException(status_code=400, detail="Invalid raw material ID(s)")
+
+        # Construction de la transaction pour appeler la fonction Solidity
         tx = contract.functions.addProduct(
             request.name,
             request.description,
             request.rwIds,
             request.manufacturerId,
             request.categoryId,
-            request.image,
-            request.price  # Assurez-vous de transmettre le prix ici
-        ).transact({'from': w3.eth.accounts[0]})
-        
-        # Attente de la transaction
-        w3.eth.wait_for_transaction_receipt(tx)
-        return {"message": "Product added successfully"}
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+            int(request.price),
+            request.image
+        ).transact({'from': w3.eth.accounts[0]})  # Adresse à remplacer si nécessaire
 
+        # Attente de la réception de la transaction
+        receipt = w3.eth.wait_for_transaction_receipt(tx)
+
+        # Vérification du statut de la transaction
+        if receipt['status'] == 1:
+            return {
+                "message": "Product added successfully",
+                "transactionHash": receipt['transactionHash'].hex()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Transaction failed on the blockchain")
+
+    except ValueError as e:
+        # Gestion des erreurs spécifiques à Web3 ou Solidity
+        raise HTTPException(status_code=400, detail=f"Blockchain error: {str(e)}")
+    except Exception as e:
+        # Gestion des autres exceptions
+        raise HTTPException(status_code=500, detail=f"Error adding product: {str(e)}")
 # Récupérer une catégorie par ID
 @app.get("/get_category/{category_id}")
 def get_category(category_id: int):
@@ -251,7 +266,7 @@ def edit_category(category_id: int, request: EditCategoryRequest):
         return {"message": "Category updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-@app.get("/products/")
+@app.get("/products/", response_model=List[Any])
 async def get_all_products():
     try:
         # Appel de la fonction `getAllProducts` du contrat
@@ -263,19 +278,25 @@ async def get_all_products():
                 "id": product[0],  # ID du produit
                 "name": product[1],  # Nom
                 "description": product[2],  # Description
-                "rawMaterialIds": product[3],  # Liste des IDs des matières premières utilisées
-                "manufacturerId": product[4],  # ID du fabricant
-                "categoryId": product[5],  # ID de la catégorie
-                "image": product[6],  # URL de l'image
-                "isActive": product[7],  # Statut d'activation
+                "rwIds": product[3],  # Liste des IDs des matières premières utilisées
+                "price": product[4],  # ID du fabricant
+                "categoryId": {
+                    "id": product[5][0],  # ID de la catégorie
+                    "title": product[5][1],  # Nom de la catégorie
+                    "isActive": product[5][2],  # Statut d'activation de la catégorie
+                },
+
+                "image": product[10],  # URL de l'image
+                "isActive": product[11],  # Statut d'activation
             }
             for product in products_data
         ]
 
-        return {"products": products_list}
+        return products_list
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/products/manufacturer/{manufacturer_id}")
 async def get_products_by_manufacturer_id(manufacturer_id: int):
     try:
@@ -298,5 +319,36 @@ async def get_products_by_manufacturer_id(manufacturer_id: int):
         ]
 
         return {"products": products_list}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/categories/")
+def get_all_categories():
+    try:
+        # Appel de la fonction Solidity `getAllCategories`
+        categories = contract.functions.getAllCategories().call()
+
+        # Transformation des données en un format lisible
+        result = [
+            {
+                "id": category[0],
+                "title": category[1],
+                "isActive": category[2]
+            }
+            for category in categories
+        ]
+
+        return  result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching categories: {str(e)}")
+@app.get("/users/", response_model=list[User2])
+async def get_all_users():
+    try:
+        users_data = contract.functions.getAllUsers().call()
+
+        users_list = [User2(name=user[1], email=user[2]) for user in users_data]
+        return users_list
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

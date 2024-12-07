@@ -18,7 +18,7 @@ export const StoreTable = () => {
     fetch("http://127.0.0.1:8000/raw_materials")
       .then((response) => response.json())
       .then((data) => {
-        setRawMaterials(data.raw_materials);
+        setRawMaterials(data);
       })
       .catch((error) => console.error("Error fetching raw materials:", error));
   }, []);

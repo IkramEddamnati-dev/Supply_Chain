@@ -33,7 +33,7 @@ class AddProductRequest(BaseModel):
     manufacturerId: int
     categoryId: int
     image: str
-    price: float  
+    price: int  
 
 class EditProductRequest(BaseModel):
     name: str

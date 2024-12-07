@@ -34,7 +34,7 @@ export const CategoryStatus = (props: Props) => {
 
   return (
     <Chip
-      label={t(`categories.fields.isActive.${props.value}`)}
+      label={`${props.value}`}
       icon={icon}
       sx={{
         borderColor: color,

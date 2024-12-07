@@ -8,8 +8,9 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
 import Paper from "@mui/material/Paper";
 import {
-  ProductListTable,
   ProductListCard,
+  ProductListTable,
+
   RefineListView,
 } from "../../components";
 import type { ICategory, IProduct } from "../../interfaces";

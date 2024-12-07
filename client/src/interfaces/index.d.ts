@@ -93,11 +93,12 @@ export interface IProduct {
   name: string;
   isActive: boolean;
   description: string;
-  images: (IFile & { thumbnailUrl?: string })[];
-  createdAt: string;
+  image: string;
+  rwIds:number[];
+  manufacturerId:number;
   price: number;
-  category: ICategory;
-  stock: number;
+  categoryId: ICategory;
+  
 }
 
 export interface ICategory {

@@ -42,7 +42,7 @@ export const ProductListTable = (props: Props) => {
                 width: 32,
                 height: 32,
               }}
-              src={row.images[0]?.thumbnailUrl || row.images[0]?.url}
+              src={row.image}
               alt={row.name}
             />
           );
@@ -85,22 +85,20 @@ export const ProductListTable = (props: Props) => {
         },
       },
       {
-        field: "category.title",
+        field: "categoryId.title",
         headerName: t("products.fields.category"),
         minWidth: 160,
         sortable: false,
         filterable: false,
-        renderCell: function render({ row }) {
-          const category = props.categories.find(
-            (category) => category.id === row.category.id,
-          );
-
-          return <Typography>{category?.title}</Typography>;
-        },
+        renderCell: (params) => {
+          // Affiche le titre de la catégorie à partir de categoryId
+          return <span>{params.row.categoryId?.title}</span>;
+        }
+        
       },
       {
         field: "isActive",
-        headerName: t("products.fields.isActive.label"),
+        headerName: "isActive",
         minWidth: 136,
         renderCell: function render({ row }) {
           return <ProductStatus value={row.isActive} />;

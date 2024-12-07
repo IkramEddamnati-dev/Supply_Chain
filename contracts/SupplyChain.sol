@@ -281,4 +281,17 @@ function getAllCategories() public view returns (Category[] memory) {
         }
          return allRawMaterials;
     }
+// Obtenir tous les utilisateurs
+function getAllUsers() public view returns (User[] memory) {
+    uint256 count = userCount; // Nombre total d'utilisateurs
+    User[] memory allUsers = new User[](count);
+
+    // Remplir le tableau avec tous les utilisateurs
+    for (uint256 i = 1; i <= count; i++) {
+        allUsers[i - 1] = users[i]; // Assurez-vous que 'users' commence à 1
+    }
+
+    return allUsers;
+}
+
 }
