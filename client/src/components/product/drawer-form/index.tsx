@@ -321,55 +321,53 @@
                 )}
               </FormControl>
               <FormControl>
-                <Controller
-                  disabled={formLoading}
-                  control={control}
-                  name="categoryId"
-                  defaultValue={null}
-                  rules={{
-                    required: t("errors.required.field", {
-                      field: "category",
-                    }),
-                  }}
-                  render={({ field }) => (
-                    <Autocomplete<ICategory>
-                      id="category"
-                      {...autocompleteProps}
-                      {...field}
-                      onChange={(_, value) => {
-                        field.onChange(value);
-                      }}
-                      getOptionLabel={(item) => {
-                        return (
-                          autocompleteProps?.options?.find(
-                            (p) => p?.id?.toString() === item?.id?.toString(),
-                          )?.title ?? ""
-                        );
-                      }}
-                      isOptionEqualToValue={(option, value) =>
-                        value === undefined ||
-                        option?.id?.toString() ===
-                          (value?.id ?? value)?.toString()
-                      }
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Category"
-                          margin="normal"
-                          variant="outlined"
-                          error={!!errors.categoryId}
-                          helperText={errors.categoryId?.message}
-                          required
-                        />
-                      )}
-                    />
-                  )}
-                />
-                {errors.categoryId && (
-                  <FormHelperText error>{errors.categoryId.message}</FormHelperText>
-                )}
-              </FormControl>
-            
+  <Controller
+    control={control}
+    name="categoryId"
+    defaultValue={null}
+    rules={{
+      required: t("errors.required.field", {
+        field: "category",
+      }),
+    }}
+    render={({ field }) => (
+      <Autocomplete<ICategory>
+        id="category"
+        {...autocompleteProps}
+        onChange={(_, value) => {
+          // Envoyer uniquement l'ID de la catégorie sélectionnée
+          field.onChange(value ? value.id : null);
+        }}
+        getOptionLabel={(item) => {
+          return (
+            autocompleteProps?.options?.find(
+              (p) => p.id?.toString() === item?.id?.toString()
+            )?.title ?? ""
+          );
+        }}
+        isOptionEqualToValue={(option, value) =>
+          value === undefined ||
+          option?.id?.toString() === (value?.id ?? value)?.toString()
+        }
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label={t("products.fields.category.label")}
+            margin="normal"
+            variant="outlined"
+            error={!!errors.categoryId}
+            helperText={errors.categoryId?.message}
+            required
+          />
+        )}
+      />
+    )}
+  />
+  {errors.categoryId && (
+    <FormHelperText error>{errors.categoryId.message}</FormHelperText>
+  )}
+</FormControl>
+
 
               <FormControl>
                 <FormLabel>{t("products.fields.isActive.label")}</FormLabel>
