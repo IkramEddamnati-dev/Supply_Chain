@@ -29,7 +29,7 @@ import { authProvider } from "./authProvider";
 import { DashboardPage } from "./pages/dashboard";
 import { OrderList, OrderShow } from "./pages/orders";
 import { CustomerShow, CustomerList } from "./pages/customers";
-import { CourierList, CourierCreate, CourierEdit } from "./pages/couriers";
+import { ShipmentList } from "./pages/couriers";
 import AuthPage from "./pages/auth";
 import { StoreList, StoreEdit, StoreCreate } from "./pages/stores";
 import { ProductEdit, ProductList, ProductCreate } from "./pages/products";
@@ -47,15 +47,98 @@ const App: React.FC = () => {
   const [userRole, setUserRole] = useState<string>("");
   const { t, i18n } = useTranslation();
   const TOKEN_KEY = "refine-auth-token";
+  const role=localStorage.getItem("userRole");
   // Simulate user authentication (replace this with your actual login mechanism)
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY)
+  
     if (token) {
       // Replace with actual logic to fetch user data and role
       setIsAuthenticated(true);
     }
   }, []);
 
+  const resources = [
+    {
+      name: "dashboard",
+      list: "/",
+      meta: {
+        label: "Dashboard",
+        icon: <Dashboard />,
+      },
+    },
+    {
+      name: "orders",
+      list: "/orders",
+      show: "/orders/:id",
+      meta: {
+        icon: <ShoppingBagOutlinedIcon />,
+      },
+    },
+    {
+      name: "users",
+      list: "/customers",
+      show: "/customers/:id",
+      meta: {
+        icon: <AccountCircleOutlinedIcon />,
+      },
+    },
+    {
+      name: "products",
+      list: "/products",
+      create: "/products/new",
+      edit: "/products/:id/edit",
+      show: "/products/:id",
+      meta: {
+        icon: <FastfoodOutlinedIcon />,
+      },
+    },
+    {
+      name: "categories",
+      list: "/categories",
+      meta: {
+        icon: <LabelOutlinedIcon />,
+      },
+    },
+    {
+      name: "raw_materials",
+      list: "/raw_materials",
+      create: "/raw_materials/new",
+      edit: "/raw_materials/:id/edit",
+      meta: {
+        icon: <StoreOutlinedIcon />,
+      },
+    },
+    {
+      name: "shipement",
+      list: "/shipements",
+      meta: {
+        icon: <MopedOutlined />,
+      },
+    },
+  ];
+
+  // Filter resources based on the user role
+  const filteredResources = resources.filter(resource => {
+    if (role === 'Manufacture') {
+      return ['users', 'raw_materials'].includes(resource.name);
+    }
+    if (role === 'Raw Material') {
+      return !['users', 'raw_materials'].includes(resource.name);
+    }
+
+    // Example: Regular user cannot access 'users' or 'raw_materials'
+    if (role === 'Distribution') {
+      return ['dashboard', 'shipement'].includes(resource.name);
+    }
+
+    if (role === 'Customer') {
+      return ['orders', 'products'].includes(resource.name);
+    }
+
+    // Default fallback: Show resources for 'guest' or other roles
+    return false;
+  });
   const i18nProvider = {
     translate: (key: string, params: object) => t(key, params),
     changeLocale: (lang: string) => i18n.changeLanguage(lang),
@@ -76,69 +159,7 @@ const App: React.FC = () => {
               authProvider={authProvider}
               i18nProvider={i18nProvider}
               notificationProvider={useNotificationProvider}
-              resources={[
-                {
-                  name: "dashboard",
-                  list: "/",
-                  meta: {
-                    label: "Dashboard",
-                    icon: <Dashboard />,
-                  },
-                },
-                {
-                  name: "orders",
-                  list: "/orders",
-                  show: "/orders/:id",
-                  meta: {
-                    icon: <ShoppingBagOutlinedIcon />,
-                  },
-                },
-                
-                {
-                  name: "users",
-                  list: "/customers",
-                  show: "/customers/:id",
-                  meta: {
-                    icon: <AccountCircleOutlinedIcon />,
-                  },
-                },
-                {
-                  name: "products",
-                  list: "/products",
-                  create: "/products/new",
-                  edit: "/products/:id/edit",
-                  show: "/products/:id",
-                  meta: {
-                    icon: <FastfoodOutlinedIcon />,
-                  },
-                },
-                {
-                  name: "categories",
-                  list: "/categories",
-                  meta: {
-                    icon: <LabelOutlinedIcon />,
-                  },
-                },
-                {
-                  name: "raw_materials",
-                  list: "/raw_materials",
-                  create: "/raw_materials/new",
-                  edit: "/raw_materials/:id/edit",
-                  meta: {
-                    icon: <StoreOutlinedIcon />,
-                  },
-                },
-                {
-                  name: "couriers",
-                  list: "/couriers",
-                  create: "/couriers/new",
-                  edit: "/couriers/:id/edit",
-                  meta: {
-                    icon: <MopedOutlined />,
-                  },
-                },
-            
-              ]}
+              resources={filteredResources}
             >
               
               <Routes>
@@ -223,23 +244,12 @@ const App: React.FC = () => {
               }
             />
             <Route
-              path="/couriers"
+              path="/shipements"
               element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<CourierList />} />
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ShipmentList />} />
               }
             />
-            <Route
-              path="/couriers/new"
-              element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<CourierCreate />} />
-              }
-            />
-            <Route
-              path="/couriers/:id/edit"
-              element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<CourierEdit />} />
-              }
-            />
+            
 
                 </Route>
 

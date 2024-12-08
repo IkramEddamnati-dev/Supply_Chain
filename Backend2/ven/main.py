@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Depends
 import jwt
 from datetime import datetime, timedelta
+from typing import List 
 # OAuth2 Scheme for token verification
 from fastapi.security import OAuth2PasswordBearer
 # Load contract details
@@ -87,6 +88,32 @@ class ProductCreate(BaseModel):
     distributorId: int
     price: int
 
+
+
+class CreateShipmentRequest(BaseModel):
+    sender_id: int
+    receiver_id: int
+    distributor_id: int
+    pickup_time: int  # Adjusted to handle ISO 8601 datetime strings
+    distance: int        # Adjusted to allow fractional values
+    price: int
+    description: str
+
+class Shipment(BaseModel):
+    id:int
+    senderId: int
+    senderName: str
+    receiverId: int
+    receiverName: str
+    distributorId: int
+    pickupTime: int
+    deliveryTime: int
+    distance: int
+    price: int
+    description: str
+    status: int  # Use an Enum or int for status (0: Pending, 1: InTransit, 2: Delivered, 3: Canceled)
+    isPaid: bool
+
 ### Helper Functions ###
 
 # Function to generate JWT token
@@ -133,7 +160,7 @@ async def login(user: UserLogin):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Create JWT token
-    access_token = create_access_token(data={"sub": user.email, "role": db_user[4]}) 
+    access_token = create_access_token(data={"sub": user.email, "role": db_user[4],"iduser":db_user[0]}) 
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/add_user/")
@@ -260,6 +287,49 @@ async def create_product(product: ProductCreate):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
+@app.post("/create_shipment")
+async def create_shipment(payload: CreateShipmentRequest):
+    try:
+        # Extract data from the payload
+        data = payload.dict()
+        sender_id = data['sender_id']
+        receiver_id = data['receiver_id']
+        distributor_id = data['distributor_id']
+        pickup_time = data['pickup_time']
+        distance = data['distance']
+        price = data['price']
+        description=data['description']
+
+        # Remaining code for transaction logic
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.createShipment(
+            sender_id,
+            receiver_id,
+            distributor_id,
+            pickup_time,
+            distance,
+            price,
+            description
+        ).build_transaction({
+            'chainId': CHAIN_ID,
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
+
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post("/start_shipment/{shipment_index}")
 async def start_shipment(shipment_index: int):
     try:
@@ -307,27 +377,36 @@ async def complete_shipment(shipment_index: int):
 
 
 # New endpoint: Get users by role
-@app.get("/get_users_by_role/{role}")
-async def get_users_by_role(role: str):
+from fastapi import HTTPException
+from typing import Optional
+
+@app.get("/getUser/{user_id}")
+async def get_user_by_id(user_id: int):
+
     try:
-        users_count = contract.functions.getUsersCount().call()
-        users = []
-
-        for i in range(users_count):
-            user = contract.functions.getUser(i).call()
-            if user[3].lower() == role.lower():  # Assuming 'role' is the 4th element in the user data
-                users.append({
-                    "name": user[0],
-                    "email": user[1],
-                    "role": user[3],
-                    "userAddress": user[4]
-                })
         
-        return {"users": users}
-    
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        users_count = contract.functions.userCount().call()
 
+        for i in range(1, users_count + 1):
+            user = contract.functions.users(i).call()  # Assuming this returns (id, name, email, cne, role, address)
+            
+            # Log the raw user data to debug
+            print(f"Raw user data: {user}")
+
+            if user[0] == user_id:
+                return {
+                    "id": user[0],
+                    "name": user[1],
+                    "email": user[2],
+                    "cne": user[3],
+                    "role": user[4],
+                    "address": user[5]
+                }
+
+        return {"error": "User not found"}
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
 # New endpoint: Get product history
 @app.get("/get_product_history/{product_id}")
@@ -347,3 +426,48 @@ async def get_product_history(product_id: int):
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# Function to fetch user data directly from the smart contract
+def get_user_data(user_id: int) -> dict:
+    try:
+        user_data = contract.functions.users(user_id).call()
+        return {"name": user_data[1]}  # Assuming the user's name is at index 0
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error fetching user data for ID {user_id}: {str(e)}")
+
+# Endpoint to get shipments by distributor ID
+@app.get("/shipments/{distributor_id}", response_model=List[Shipment])
+async def get_shipments_by_distributor(distributor_id: int):
+    try:
+        # Call the smart contract method to get shipments by distributor ID
+        shipments = contract.functions.getShipmentsByDistributor(distributor_id).call()
+
+        # For each shipment, fetch the sender and receiver names using the user contract
+        result = []
+        for shipment in shipments:
+            sender_data = get_user_data(shipment[1])  
+            receiver_data = get_user_data(shipment[2])  
+            
+            # Create Shipment object with sender and receiver names
+            shipment_data = Shipment(
+                id=shipment[0],
+                senderId=shipment[1],
+                senderName=sender_data["name"],
+                receiverId=shipment[2],
+                receiverName=receiver_data["name"],
+                distributorId=shipment[3],
+                pickupTime=shipment[4],
+                deliveryTime=shipment[5],
+                distance=shipment[6],
+                price=shipment[7],
+                description=shipment[8],
+                status=shipment[9],
+                isPaid=shipment[10]
+            )
+            result.append(shipment_data)
+
+        # Return the shipment data
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching shipments: {str(e)}")

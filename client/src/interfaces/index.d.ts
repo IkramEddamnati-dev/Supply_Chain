@@ -19,6 +19,23 @@ export interface ISalesChart {
   value: number;
 }
 
+export interface IShipment {
+  id:number,
+  senderId: number;
+  senderName: string;
+  receiverId: number;
+  receiverName: string;
+  distributorId: number;
+  pickupTime: number; // Assuming time is in hours or timestamp
+  deliveryTime: number; // Assuming time is in hours or timestamp
+  distance: number; // Distance in kilometers
+  price: number; // Price in currency
+  description: string; // Shipment description
+  status: number; // Shipment status (e.g., 0 for Pending, 1 for Completed)
+  isPaid: boolean; // Payment status (true for paid, false for unpaid)
+}
+
+
 export interface IOrderStatus {
   id: number;
   text: "Pending" | "Ready" | "On The Way" | "Delivered" | "Cancelled";

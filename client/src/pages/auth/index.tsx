@@ -31,7 +31,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
   const handleLogin = useCallback(async (email: string, password: string) => {
     try {
       // Make the POST request to the backend
-      const response = await axios.post<{ access_token: string; token_type: string }>(
+      const response = await axios.post<{ access_token: string; token_type: string;}>(
         `${API_URL}/login/`,
         { email, password }
       );
@@ -42,24 +42,35 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
       if (access_token) {
         // Save the access token to localStorage
         localStorage.setItem(TOKEN_KEY, access_token);
-
+      
         try {
-          // Decode the token to get the user's role
+          // Decode the JWT payload
           const decodedToken = JSON.parse(atob(access_token.split(".")[1]));
           const userRole = decodedToken?.role;
+          const userId = decodedToken?.iduser;
+      
+          // Save the user role and ID to localStorage
+          if (userRole && userId) {
+            localStorage.setItem("userRole", userRole);
+            localStorage.setItem("userId", userId);
 
-          // Redirect based on user role
-          if (userRole === "admin") {
-            navigate("/"); // Redirect to admin dashboard
+            // Redirect based on the user role
+            if (userRole === "admin") {
+              navigate("/admin-dashboard"); // Redirect to admin dashboard
+            } else {
+              navigate("/"); // Redirect to user dashboard
+            }
           } else {
-            navigate("/"); // Redirect to user dashboard
+            setError("Role not found in the token.");
           }
         } catch (error) {
           setError("Invalid token format.");
+          console.error("Error decoding token:", error);
         }
       } else {
         setError("Access token is missing.");
       }
+      
     } catch (error) {
       setError("Login failed. Please check your credentials.");
     }

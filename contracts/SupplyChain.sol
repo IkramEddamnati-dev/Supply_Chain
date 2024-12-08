@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
 pragma experimental ABIEncoderV2;
+
 contract SupplyChain {
     address public Owner;
 
@@ -68,6 +69,7 @@ contract SupplyChain {
     }
 
     struct Shipment {
+        uint256 id;
         uint256 senderId;
         uint256 receiverId;
         uint256 distributorId;
@@ -75,6 +77,7 @@ contract SupplyChain {
         uint256 deliveryTime;
         uint256 distance;
         uint256 price;
+        string description;
         ShipmentStatus status;
         bool isPaid;
     }
@@ -83,7 +86,8 @@ contract SupplyChain {
     mapping(uint256 => RW) public rms;
     mapping(uint256 => Product) public productStock;
     mapping(uint256 => ProductHistory[]) public productHistories;
-    mapping(address => Shipment[]) public shipments;
+    mapping(uint256 => Shipment) public shipments;
+    mapping(uint256 => uint256[]) public shipmentsByDistributor; // New mapping to store shipment IDs by distributor
 
     // Events
     event RawMaterialAdded(uint256 id, string name);
@@ -96,12 +100,14 @@ contract SupplyChain {
         uint256 manufacturerId
     );
     event ShipmentCreated(
+        uint256 id,
         uint256 senderId,
         uint256 receiverId,
         uint256 distributorId,
         uint256 pickupTime,
         uint256 distance,
-        uint256 price
+        uint256 price,
+        string description
     );
     event ShipmentInTransit(
         uint256 senderId,
@@ -193,7 +199,8 @@ contract SupplyChain {
                 _distributorId,
                 block.timestamp,
                 100,
-                _price
+                _price,
+                " "
             );
         }
 
@@ -215,36 +222,56 @@ contract SupplyChain {
         uint256 _distributorId,
         uint256 _pickupTime,
         uint256 _distance,
-        uint256 _price
-    ) internal {
-        shipments[msg.sender].push(
-            Shipment({
-                senderId: _senderId,
-                receiverId: _receiverId,
-                distributorId: _distributorId,
-                pickupTime: _pickupTime,
-                deliveryTime: 0,
-                distance: _distance,
-                price: _price,
-                status: ShipmentStatus.PENDING,
-                isPaid: false
-            })
-        );
+        uint256 _price,
+        string memory _description
+    ) public {
         shipmentCount++;
+        shipments[shipmentCount] = Shipment({
+            id: shipmentCount,
+            senderId: _senderId,
+            receiverId: _receiverId,
+            distributorId: _distributorId,
+            pickupTime: _pickupTime,
+            deliveryTime: 0,
+            distance: _distance,
+            price: _price,
+            description: _description,
+            status: ShipmentStatus.PENDING,
+            isPaid: false
+        });
+
+        shipmentsByDistributor[_distributorId].push(shipmentCount); // Add the shipment ID to the distributor's list
 
         emit ShipmentCreated(
+            shipmentCount,
             _senderId,
             _receiverId,
             _distributorId,
             _pickupTime,
             _distance,
-            _price
+            _price,
+            _description
         );
+    }
+
+    // Get shipments by distributor
+    function getShipmentsByDistributor(uint256 distributorId) public view returns (Shipment[] memory) {
+        uint256 count = shipmentsByDistributor[distributorId].length;
+        
+        // Create an array to store the result
+        Shipment[] memory result = new Shipment[](count);
+
+        // Populate the result array with shipments
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = shipments[shipmentsByDistributor[distributorId][i]];
+        }
+
+        return result;
     }
 
     // Start Shipment
     function startShipment(uint256 _shipmentIndex) public {
-        Shipment storage shipment = shipments[msg.sender][_shipmentIndex];
+        Shipment storage shipment = shipments[_shipmentIndex];
         require(
             shipment.status == ShipmentStatus.PENDING,
             "Shipment not pending."
@@ -260,7 +287,7 @@ contract SupplyChain {
 
     // Complete Shipment
     function completeShipment(uint256 _shipmentIndex) public {
-        Shipment storage shipment = shipments[msg.sender][_shipmentIndex];
+        Shipment storage shipment = shipments[_shipmentIndex];
         require(
             shipment.status == ShipmentStatus.IN_TRANSIT,
             "Shipment not in transit."
@@ -281,43 +308,5 @@ contract SupplyChain {
             shipment.receiverId,
             shipment.price
         );
-    }
-    // Get users by role
-    function getUsersByRole(
-        string memory _role
-    ) public view returns (User[] memory) {
-        uint256 count = 0;
-
-        // Count users with the specified role
-        for (uint256 i = 1; i <= userCount; i++) {
-            if (
-                keccak256(abi.encodePacked(users[i].role)) ==
-                keccak256(abi.encodePacked(_role))
-            ) {
-                count++;
-            }
-        }
-
-        // Create a dynamic array of users with the role
-        User[] memory result = new User[](count);
-        uint256 index = 0;
-
-        for (uint256 i = 1; i <= userCount; i++) {
-            if (
-                keccak256(abi.encodePacked(users[i].role)) ==
-                keccak256(abi.encodePacked(_role))
-            ) {
-                result[index] = users[i];
-                index++;
-            }
-        }
-        return result;
-    }
-
-    // Get product history
-    function getProductHistory(
-        uint256 _productId
-    ) public view returns (ProductHistory[] memory) {
-        return productHistories[_productId];
     }
 }
