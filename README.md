@@ -1,22 +1,3 @@
-## pour demarer backend
-
-1. cd backend2
-2. .\ven\Scripts\Activate
-3. uvicorn main:app --reload
-
-## Pour FrentEnd
-
-1. cd client
-2. npm run dev
-
-## Pour contrat
-
-1. truffle Compile
-2. truffle migrate
-
-Apologies for the confusion! Here's the full **README.md** script tailored for your project setup:
-
-````markdown
 # Full Project Setup Guide
 
 This guide will help you set up the backend, frontend, and smart contracts for the project.
@@ -31,6 +12,7 @@ This guide will help you set up the backend, frontend, and smart contracts for t
 git clone https://github.com/IkramEddamnati-dev/Supply_Chain.git
 cd Supply_Chain
 ```
+
 ````
 
 ### 2. Navigate to the backend directory
@@ -142,6 +124,3 @@ Once migrated, you can interact with your smart contract from the backend or fro
 
 Happy Coding! 🎉
 
-```
-
-```

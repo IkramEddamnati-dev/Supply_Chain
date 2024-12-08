@@ -1,0 +1,39 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+client/node_modules/
+client/.pnp/
+.pnp.js
+Backend2/ven/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Testing
+client/coverage/
+
+# Production
+client/build/
+Backend2/artifacts/
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE-specific
+.idea/
+.vscode/
+*.swp

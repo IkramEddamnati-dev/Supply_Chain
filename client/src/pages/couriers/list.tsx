@@ -99,7 +99,7 @@ const handleCompleteShipment = async () => {
     {
       field: "receiverName",
       headerName: "Receiver",
-      width: 180,
+      width: 150,
       renderCell: ({ row }) => <Typography>{row.receiverName}</Typography>,
     },
     {
@@ -130,7 +130,7 @@ const handleCompleteShipment = async () => {
     {
       field: "isPaid",
       headerName: "Payment Status",
-      width: 150,
+      width: 120,
       renderCell: ({ row }) => <Typography>{row.isPaid ? "Paid" : "Unpaid"}</Typography>,
     },
     {
@@ -178,21 +178,21 @@ const handleCompleteShipment = async () => {
           );
         }
         if (row.status === 2) {
-          return (
-            <div>
-              <Tooltip title="Shipment Completed" arrow>
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="small"
-                  sx={{ minWidth: 40 }}
-                >
-                  <CheckCircle sx={{ fontSize: 24 }} />
-                </Button>
-              </Tooltip>
-            </div>
-          );
-        }
+      return (
+        <div>
+          <Tooltip title="Shipment Completed" arrow>
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              sx={{ minWidth: 40 }}
+            >
+              <CheckCircle sx={{ fontSize: 24 }} />
+            </Button>
+          </Tooltip>
+        </div>
+      );
+    }
         return null;
       },
     },
