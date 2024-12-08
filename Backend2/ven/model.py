@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import BaseModel
 
 
@@ -16,45 +17,28 @@ class RawMaterialCreate(BaseModel):
     description: str
     price: int
     image: str
-    origin: str
+    origin: str  # Adresse sous forme de texte
+    latitude: float
+    longitude: float
 
-class UserLogin(BaseModel):
-    email: str
-    password: str
+class AddCategoryRequest(BaseModel):
+    title: str
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class ProductCreate(BaseModel):
+class AddProductRequest(BaseModel):
     name: str
     description: str
-    rwIds: list[int]
+    rwIds: list[int]  # Liste des IDs des matières premières
     manufacturerId: int
-    distributorId: int
-    price: int
+    categoryId: int
+    image: str
+    price: int  
 
-
-
-class CreateShipmentRequest(BaseModel):
-    sender_id: int
-    receiver_id: int
-    distributor_id: int
-    pickup_time: int  # Adjusted to handle ISO 8601 datetime strings
-    distance: int        # Adjusted to allow fractional values
-    price: int
+class EditProductRequest(BaseModel):
+    name: str
     description: str
+    rwIds: List[int]
+    categoryId: int
+    image: str
 
-class Shipment(BaseModel):
-    senderId: int
-    receiverId: int
-    senderName: str
-    receiverName: str
-    distributorId: int
-    pickupTime: int
-    deliveryTime: int
-    distance: int
-    price: int
-    description: str
-    status: int  # Use an Enum or int for status (0: Pending, 1: InTransit, 2: Delivered, 3: Canceled)
-    isPaid: bool
+class EditCategoryRequest(BaseModel):
+    title: str

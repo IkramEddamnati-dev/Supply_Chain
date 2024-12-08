@@ -40,7 +40,7 @@ import PrivateRoute from "./PrivateRoute";
 
 import { useState, useEffect } from "react";
 
-const API_URL = "http://127.0.0.1:7545";
+const API_URL = "http://127.0.0.1:8000";
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

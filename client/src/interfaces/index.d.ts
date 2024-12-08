@@ -81,15 +81,14 @@ export interface IEvent {
   status: string;
 }
 
-export interface IStore {
+export interface IRMS {
   id: number;
-  gsm: string;
-  email: string;
-  title: string;
-  isActive: boolean;
-  createdAt: string;
-  address: IAddress;
-  products: IProduct[];
+  name: string;
+  description: string;
+  price: number;
+  image:  string;
+  origin: IAddress;
+  
 }
 
 export interface IOrder {
@@ -111,11 +110,12 @@ export interface IProduct {
   name: string;
   isActive: boolean;
   description: string;
-  images: (IFile & { thumbnailUrl?: string })[];
-  createdAt: string;
+  image: string;
+  rwIds:number[];
+  manufacturerId:number;
   price: number;
-  category: ICategory;
-  stock: number;
+  categoryId: ICategory;
+  
 }
 
 export interface ICategory {

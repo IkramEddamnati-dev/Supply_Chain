@@ -27,7 +27,7 @@ import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import BrightnessHighIcon from "@mui/icons-material/BrightnessHigh";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import i18n from "../../i18n";
-import type { IOrder, IStore, ICourier, IIdentity } from "../../interfaces";
+import type { IOrder, ICourier, IIdentity, IRMS } from "../../interfaces";
 import { ColorModeContext } from "../../contexts";
 
 interface IOptions {
@@ -82,8 +82,8 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = () => {
     },
   });
 
-  const { refetch: refetchStores } = useList<IStore>({
-    resource: "stores",
+  const { refetch: refetchStores } = useList<IRMS>({
+    resource: "raw_materials",
     config: {
       filters: [{ field: "q", operator: "contains", value }],
     },
@@ -92,7 +92,7 @@ export const Header: React.FC<RefineThemedLayoutV2HeaderProps> = () => {
       onSuccess: (data) => {
         const storeOptionGroup = data.data.map((item) => {
           return {
-            label: `${item.title} - ${item.address.text}`,
+            label: `${item.origin} - ${item.origin.text}`,
             link: `/stores/edit/${item.id}`,
             category: t("stores.stores"),
           };

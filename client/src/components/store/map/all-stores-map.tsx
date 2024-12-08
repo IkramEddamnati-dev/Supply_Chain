@@ -1,5 +1,4 @@
-import { useList, useNavigation, useTranslate } from "@refinedev/core";
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import Divider from "@mui/material/Divider";
@@ -7,33 +6,38 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import { GoogleMap, AdvancedMarker } from "../../map";
-import { StoreStatus } from "../status";
-import type { IStore } from "../../../interfaces";
+import type { IRMS } from "../../../interfaces";
 
 export const AllStoresMap = () => {
-  const t = useTranslate();
-  const parentRef = useRef<HTMLDivElement>(null);
+  const [rawMaterials, setRawMaterials] = useState<IRMS[]>([]); // État pour stocker les données
   const [map, setMap] = useState<google.maps.Map>();
-  const [selectedStore, setSelectedStore] = useState<IStore | null>(null);
-  const { edit } = useNavigation();
+  const [selectedStore, setSelectedStore] = useState<IRMS | null>(null);
 
-  const { data: storeData } = useList<IStore>({
-    resource: "stores",
-    pagination: {
-      mode: "off",
-    },
-  });
-  const stores = storeData?.data || [];
-
-  const handleMarkerClick = (store: IStore) => {
+  // Utilisation de useEffect pour récupérer les données avec fetch
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/raw_materials")
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Fetched data:", data);
+        setRawMaterials(data.raw_materials);
+      })
+      .catch((error) => console.error("Error fetching raw materials:", error));
+  }, []);
+  
+  // Pour vérifier map
+  useEffect(() => {
+    if (map) {
+      console.log("Google Map initialized:", map);
+    }
+  }, [map]);
+  
+  const handleMarkerClick = (store: IRMS) => {
     setSelectedStore(store);
   };
 
   return (
     <Box
-      ref={parentRef}
       style={{
         height: "100%",
         width: "100%",
@@ -54,80 +58,62 @@ export const AllStoresMap = () => {
           zoom: 10,
         }}
       >
-        {stores?.map((store) => {
-          const lat = Number(store.address?.coordinate?.[0]);
-          const lng = Number(store.address?.coordinate?.[1]);
+      {rawMaterials.map((store) => {
+  const lat = Number(store.origin?.coordinate?.[0]);
+  const lng = Number(store.origin?.coordinate?.[1]);
 
-          if (!lat || !lng) return null;
+  // Filtrer les coordonnées invalides
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    console.warn(`Invalid coordinates: Lat ${lat}, Lng ${lng}`);
+    return null; // Ignore the invalid marker
+  }
 
-          return (
-            <AdvancedMarker
-              key={store.id}
-              map={map}
-              zIndex={selectedStore?.id === store.id ? 1 : 0}
-              position={{
-                lat,
-                lng,
-              }}
-              onClick={() => {
-                handleMarkerClick(store);
-              }}
-            >
-              {(selectedStore?.id !== store.id || !selectedStore) && (
-                <img src="/images/marker-store.svg" alt={store.title} />
-              )}
-              {selectedStore?.id === store.id && (
-                <Card
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedStore(null);
-                  }}
-                  sx={{
-                    padding: "16px",
-                    position: "relative",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <Box
-                    onClick={() => {
-                      edit("stores", selectedStore.id);
-                    }}
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                  >
-                    <Typography variant="h6">{store.title}</Typography>
-                    <StoreStatus
-                      value={store.isActive}
-                      label={
-                        store.isActive
-                          ? t("stores.fields.isActive.true")
-                          : t("stores.fields.isActive.false")
-                      }
-                    />
-                  </Box>
-                  <Box mt="16px" color="text.secondary">
-                    <Divider />
-                    <Stack direction="row" alignItems="center" gap="8px">
-                      <PlaceOutlinedIcon />
-                      <Typography py="8px">{store.address?.text}</Typography>
-                    </Stack>
-                    <Divider />
-                    <Stack direction="row" alignItems="center" gap="8px">
-                      <AccountCircleOutlinedIcon />
-                      <Typography py="8px">{store.email}</Typography>
-                    </Stack>
-                    <Divider />
-                    <Stack direction="row" alignItems="center" gap="8px">
-                      <LocalPhoneOutlinedIcon />
-                      <Typography py="8px">{store.gsm}</Typography>
-                    </Stack>
-                  </Box>
-                </Card>
-              )}
-            </AdvancedMarker>
-          );
-        })}
+  console.log("Lat:", lat, "Lng:", lng); // Vérifiez les coordonnées valides
+
+  return (
+    <AdvancedMarker
+      key={store.id}
+      map={map}
+      zIndex={selectedStore?.id === store.id ? 1 : 0}
+      position={{ lat, lng }}
+      onClick={() => handleMarkerClick(store)}
+    >
+      {(selectedStore?.id !== store.id || !selectedStore) && (
+        <img src="/images/marker-store.svg" alt={store.name} />
+      )}
+      {selectedStore?.id === store.id && (
+        <Card
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedStore(null);
+          }}
+          sx={{
+            padding: "16px",
+            position: "relative",
+            marginBottom: "16px",
+          }}
+        >
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">{store.name}</Typography>
+          </Box>
+          <Box mt="16px" color="text.secondary">
+            <Divider />
+            <Stack direction="row" alignItems="center" gap="8px">
+              <PlaceOutlinedIcon />
+              <Typography py="8px">{store.origin?.text}</Typography>
+            </Stack>
+            <Divider />
+            <Stack direction="row" alignItems="center" gap="8px">
+              <LocalPhoneOutlinedIcon />
+              <Typography py="8px">{store.price}</Typography>
+            </Stack>
+          </Box>
+        </Card>
+      )}
+    </AdvancedMarker>
+  );
+})}
+
       </GoogleMap>
     </Box>
   );

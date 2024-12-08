@@ -5,6 +5,17 @@ pragma experimental ABIEncoderV2;
 contract SupplyChain {
     address public Owner;
 
+    struct Address {
+        string text; // Adresse sous forme de texte
+        int256[2] coordinate; // Tableau de coordonnées [latitude, longitude]
+    }
+
+    struct Category {
+        uint256 id;
+        string title;
+        bool isActive;
+    }
+
     constructor() public {
         Owner = msg.sender;
     }
@@ -31,6 +42,22 @@ contract SupplyChain {
     uint256 public productCtr = 0;
     uint256 public userCount = 0;
     uint256 public shipmentCount = 0;
+    uint256 public categoryCtr = 0;
+
+    struct Product {
+        uint256 id;
+        string name;
+        string description;
+        uint256[] rwIds;
+        uint256 price; // Ajout du prix
+        Category category;
+        uint256 manufacturerId;
+        uint256 distributorId;
+        bool isActive;
+        string image;
+        uint256 currentHandlerId;
+        STAGE stage;
+    }
 
     struct RW {
         uint256 id;
@@ -39,25 +66,14 @@ contract SupplyChain {
         uint256 price;
         uint256 userId;
         string image;
-        string origin;
-    }
-
-    struct Product {
-        uint256 id;
-        string name;
-        string description;
-        uint256[] rwIds;
-        uint256 manufacturerId;
-        uint256 distributorId;
-        uint256 currentHandlerId;
-        STAGE stage;
+        Address origin;
     }
 
     struct User {
         uint256 id;
         string name;
         string email;
-        bytes32 passwordHash; 
+        bytes32 passwordHash;
         string role;
         string userAddress;
     }
@@ -85,6 +101,7 @@ contract SupplyChain {
     mapping(uint256 => User) public users;
     mapping(uint256 => RW) public rms;
     mapping(uint256 => Product) public productStock;
+    mapping(uint256 => Category) public categories;
     mapping(uint256 => ProductHistory[]) public productHistories;
     mapping(uint256 => Shipment) public shipments;
     mapping(uint256 => uint256[]) public shipmentsByDistributor; // New mapping to store shipment IDs by distributor
@@ -93,12 +110,6 @@ contract SupplyChain {
     event RawMaterialAdded(uint256 id, string name);
     event ProductAdded(uint256 id, string name);
     event ProductStageUpdated(uint256 id, STAGE newStage);
-    event ProductCreated(
-        uint256 id,
-        string name,
-        string description,
-        uint256 manufacturerId
-    );
     event ShipmentCreated(
         uint256 id,
         uint256 senderId,
@@ -120,6 +131,10 @@ contract SupplyChain {
         uint256 deliveryTime
     );
     event ShipmentPaid(uint256 senderId, uint256 receiverId, uint256 amount);
+    event CategoryAdded(uint256 id, string title);
+    event RawMaterialUpdated(uint256 id, string name);
+    event ProductUpdated(uint256 id, string name);
+    event CategoryUpdated(uint256 id, string title);
 
     // Add a raw material
     function addRawMaterial(
@@ -127,7 +142,9 @@ contract SupplyChain {
         string memory _description,
         uint256 _price,
         string memory _image,
-        string memory _origin
+        string memory _originText, // Texte de l'adresse
+        int256 _latitude, // Latitude
+        int256 _longitude // Longitude
     ) public onlyByOwner {
         rmsCtr++;
         rms[rmsCtr] = RW({
@@ -137,12 +154,26 @@ contract SupplyChain {
             price: _price,
             userId: 0,
             image: _image,
-            origin: _origin
+            origin: Address({
+                text: _originText,
+                coordinate: [_latitude, _longitude] // Remplissage des coordonnées
+            })
         });
         emit RawMaterialAdded(rmsCtr, _name);
     }
 
-    // Add a user
+    // Ajouter une catégorie
+    function addCategory(string memory _title) public onlyByOwner {
+        categoryCtr++;
+        categories[categoryCtr] = Category({
+            id: categoryCtr,
+            title: _title,
+            isActive: true
+        });
+        emit CategoryAdded(categoryCtr, _title);
+    }
+
+    // Ajouter un utilisateur
     function addUser(
         string memory _name,
         string memory _email,
@@ -150,10 +181,9 @@ contract SupplyChain {
         string memory _role,
         string memory _userAddress
     ) public {
-        require(bytes(_name).length > 0, "Name cannot be empty.");
-        require(bytes(_email).length > 0, "Email cannot be empty.");
-        require(bytes(_password).length > 0, "Password cannot be empty.");
-
+        require(bytes(_name).length > 0, "Name cannot be empty");
+        require(bytes(_email).length > 0, "Email cannot be empty");
+        require(bytes(_password).length > 0, "Password cannot be empty");
         userCount++;
         users[userCount] = User({
             id: userCount,
@@ -165,29 +195,51 @@ contract SupplyChain {
         });
     }
 
-    // Create a product and trigger shipments for the raw materials used
-    function createProduct(
+    // Ajouter un produit
+    function addProduct(
         string memory _name,
         string memory _description,
         uint256[] memory _rwIds,
         uint256 _manufacturerId,
         uint256 _distributorId,
-        uint256 _price
+        uint256 _categoryId,
+        uint256 _price, // Ajouter le prix comme paramètre
+        string memory _image
     ) public onlyByOwner {
         require(users[_manufacturerId].id != 0, "Manufacturer does not exist.");
         require(users[_distributorId].id != 0, "Distributor does not exist.");
         require(_rwIds.length > 0, "Product must contain raw materials.");
+        // Vérification des IDs de matières premières
+        for (uint256 i = 0; i < _rwIds.length; i++) {
+            require(
+                _rwIds[i] > 0 && _rwIds[i] <= rmsCtr,
+                "Invalid raw material ID"
+            );
+        }
 
+        // Vérification de la validité de la catégorie
+        require(
+            _categoryId > 0 && _categoryId <= categoryCtr,
+            "Invalid category ID"
+        );
+
+        // Incrémentation du compteur de produits
         productCtr++;
+
+        // Création du produit
         productStock[productCtr] = Product({
             id: productCtr,
             name: _name,
             description: _description,
             rwIds: _rwIds,
+            price: _price, // Assignation du prix
+            category: categories[_categoryId],
             manufacturerId: _manufacturerId,
             distributorId: _distributorId,
             currentHandlerId: _manufacturerId,
-            stage: STAGE.Manufacture
+            stage: STAGE.Manufacture, // Le stade initial est la fabrication
+            isActive: true,
+            image: _image
         });
 
         for (uint256 i = 0; i < _rwIds.length; i++) {
@@ -204,15 +256,107 @@ contract SupplyChain {
             );
         }
 
-        productHistories[productCtr].push(
+        // Émettre l'événement
+        emit ProductAdded(productCtr, _name);
+    }
+
+    // Obtenir un produit par ID
+    function getProductById(
+        uint256 _productId
+    ) public view returns (Product memory) {
+        require(
+            _productId > 0 && _productId <= productCtr,
+            "Produit inexistant"
+        );
+        return productStock[_productId];
+    }
+
+    // Obtenir tous les produits
+    function getAllProducts() public view returns (Product[] memory) {
+        uint256 count = productCtr; // Nombre total de produits
+        Product[] memory allProducts = new Product[](count);
+
+        for (uint256 i = 1; i <= count; i++) {
+            allProducts[i - 1] = productStock[i];
+        }
+
+        return allProducts;
+    }
+
+    // Obtenir toutes les catégories
+    function getAllCategories() public view returns (Category[] memory) {
+        uint256 count = categoryCtr; // Nombre total de catégories
+        // Créer un tableau dynamique avec le nombre total de catégories
+        Category[] memory allCategories = new Category[](count);
+
+        // Remplir le tableau allCategories avec les catégories
+        for (uint256 i = 1; i <= count; i++) {
+            allCategories[i - 1] = categories[i]; // Assurez-vous que 'categories' commence à 1
+        }
+
+        return allCategories;
+    }
+
+    // Obtenir les utilisateurs par rôle
+    function getUsersByRole(
+        string memory _role
+    ) public view returns (User[] memory) {
+        uint256 count = userCount; // Nombre total d'utilisateurs
+        uint256 userCountByRole = 0;
+
+        // Compter le nombre d'utilisateurs avec le rôle spécifié
+        for (uint256 i = 1; i <= count; i++) {
+            if (
+                keccak256(abi.encodePacked(users[i].role)) ==
+                keccak256(abi.encodePacked(_role))
+            ) {
+                userCountByRole++;
+            }
+        }
+
+        // Créer un tableau dynamique avec le nombre d'utilisateurs avec ce rôle
+        User[] memory usersWithRole = new User[](userCountByRole);
+        uint256 index = 0;
+
+        // Ajouter les utilisateurs avec le rôle spécifié
+        for (uint256 i = 1; i <= count; i++) {
+            if (
+                keccak256(abi.encodePacked(users[i].role)) ==
+                keccak256(abi.encodePacked(_role))
+            ) {
+                usersWithRole[index] = users[i];
+                index++;
+            }
+        }
+
+        return usersWithRole;
+    }
+
+    // Mettre à jour le stade d'un produit
+    function updateProductStage(
+        uint256 _productId,
+        STAGE _newStage
+    ) public onlyByOwner {
+        require(
+            _productId > 0 && _productId <= productCtr,
+            "Product does not exist."
+        );
+        require(
+            uint8(_newStage) > uint8(productStock[_productId].stage),
+            "Invalid stage."
+        );
+
+        productStock[_productId].stage = _newStage;
+
+        productHistories[_productId].push(
             ProductHistory({
                 timestamp: block.timestamp,
-                handlerId: _manufacturerId,
-                stage: STAGE.Manufacture
+                handlerId: _productId,
+                stage: _newStage
             })
         );
 
-        emit ProductCreated(productCtr, _name, _description, _manufacturerId);
+        emit ProductStageUpdated(_productId, _newStage);
     }
 
     // Create Shipment
@@ -255,9 +399,11 @@ contract SupplyChain {
     }
 
     // Get shipments by distributor
-    function getShipmentsByDistributor(uint256 distributorId) public view returns (Shipment[] memory) {
+    function getShipmentsByDistributor(
+        uint256 distributorId
+    ) public view returns (Shipment[] memory) {
         uint256 count = shipmentsByDistributor[distributorId].length;
-        
+
         // Create an array to store the result
         Shipment[] memory result = new Shipment[](count);
 
@@ -308,5 +454,27 @@ contract SupplyChain {
             shipment.receiverId,
             shipment.price
         );
+    }
+
+    function getAllRawMaterials() public view returns (RW[] memory) {
+        uint256 count = rmsCtr; // Nombre total de matières premières
+        // Créer un tableau dynamique avec le nombre total de matières premières
+        RW[] memory allRawMaterials = new RW[](count);
+        for (uint256 i = 1; i <= count; i++) {
+            allRawMaterials[i - 1] = rms[i];
+        }
+        return allRawMaterials;
+    }
+    // Obtenir tous les utilisateurs
+    function getAllUsers() public view returns (User[] memory) {
+        uint256 count = userCount; // Nombre total d'utilisateurs
+        User[] memory allUsers = new User[](count);
+
+        // Remplir le tableau avec tous les utilisateurs
+        for (uint256 i = 1; i <= count; i++) {
+            allUsers[i - 1] = users[i]; // Assurez-vous que 'users' commence à 1
+        }
+
+        return allUsers;
     }
 }

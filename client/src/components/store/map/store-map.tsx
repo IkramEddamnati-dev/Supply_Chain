@@ -2,11 +2,20 @@ import { useCallback } from "react";
 import _debounce from "lodash/debounce";
 import Box from "@mui/material/Box";
 import { GoogleMap, MapMarker } from "../../map";
-import type { IStore } from "../../../interfaces";
 import { convertLatLng } from "../../../utils";
-
+export interface IRMS {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  origin: string;
+  longitude:number;
+  latitude:number;
+  
+}
 type Props = {
-  store?: IStore;
+  store?: IRMS;
   lat?: number;
   lng?: number;
   zoom?: number;

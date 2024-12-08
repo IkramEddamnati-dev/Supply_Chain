@@ -33,7 +33,7 @@ export const ProductListCard = (props: Props) => {
   const categoryFilters = useMemo(() => {
     const filter = props.filters.find((filter) => {
       if ("field" in filter) {
-        return filter.field === "category.id";
+        return filter.field === "categoryId.id";
       }
 
       return false;
@@ -62,7 +62,7 @@ export const ProductListCard = (props: Props) => {
 
     props.setFilters([
       {
-        field: "category.id",
+        field: "categoryId.id",
         operator: "in",
         value: newFilters,
       },
@@ -83,7 +83,7 @@ export const ProductListCard = (props: Props) => {
           onClick={() => {
             props.setFilters([
               {
-                field: "category.id",
+                field: "categoryId.id",
                 operator: "in",
                 value: [],
               },
@@ -92,6 +92,7 @@ export const ProductListCard = (props: Props) => {
           }}
         />
         {props.categories.map((category) => {
+          
           return (
             <Chip
               key={category.id}
@@ -120,9 +121,9 @@ export const ProductListCard = (props: Props) => {
         }}
       >
         {products?.map((product) => {
-          const category = props.categories.find(
-            (c) => c.id === product.category.id,
-          );
+            console.log("Rendering product: ", product);
+
+          const category =product.categoryId.id
 
           return (
             <Grid key={product.id} item sm={3} md={4} lg={3}>
@@ -153,7 +154,7 @@ export const ProductListCard = (props: Props) => {
                     <CardMedia
                       component="img"
                       height="160"
-                      image={product.images[0]?.url}
+                      image={product.image}
                       alt={product.name}
                     />
                     <Button
@@ -225,7 +226,7 @@ export const ProductListCard = (props: Props) => {
                       sx={{
                         backgroundColor: "transparent",
                       }}
-                      label={category?.title}
+                      label={product?.categoryId?.title}
                     />
                     <ProductStatus size="small" value={product.isActive} />
                   </CardActions>

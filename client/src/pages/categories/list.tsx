@@ -12,6 +12,7 @@ import {
   CustomTooltip,
 } from "../../components";
 import type { ICategory, IProduct } from "../../interfaces";
+import { Typography } from "@mui/material";
 
 export const CategoryList = () => {
   const t = useTranslate();
@@ -39,6 +40,9 @@ export const CategoryList = () => {
         field: "title",
         headerName: t("categories.fields.title"),
         width: 232,
+        renderCell: function render({ row }) {
+          return <Typography>{row.title}</Typography>;
+        },
       },
       {
         field: "product",
@@ -46,7 +50,7 @@ export const CategoryList = () => {
         flex: 1,
         renderCell: function render({ row }) {
           const categoryProducts = products.filter(
-            (product) => product.category.id === row.id,
+            (product) => product.categoryId.id === row.id,
           );
           return (
             <Box display="flex" alignItems="center" gap="8px" flexWrap="wrap">
@@ -66,8 +70,7 @@ export const CategoryList = () => {
 
               {!productsIsLoading &&
                 categoryProducts.map((product) => {
-                  const image = product.images?.[0];
-                  const thumbnailUrl = image?.thumbnailUrl || image?.url;
+                  
                   return (
                     <CustomTooltip key={product.id} title={product.name}>
                       <Avatar
@@ -77,7 +80,7 @@ export const CategoryList = () => {
                         }}
                         variant="rounded"
                         alt={product.name}
-                        src={thumbnailUrl}
+                        src={product.image}
                       />
                     </CustomTooltip>
                   );
