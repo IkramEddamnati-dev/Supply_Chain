@@ -28,7 +28,7 @@ type Props = {
 export const ProductListCard = (props: Props) => {
   const go = useGo();
   const { pathname } = useLocation();
-  const { showUrl } = useNavigation();
+  const { editUrl } = useNavigation();
   const t = useTranslate();
   const products = props.tableQueryResult?.data?.data || [];
 
@@ -163,7 +163,7 @@ export const ProductListCard = (props: Props) => {
                       startIcon={<EditOutlinedIcon />}
                       onClick={() => {
                         return go({
-                          to: `${showUrl("products", product.id)}`,
+                          to: `${editUrl("products", product.id)}`,
                           query: {
                             to: pathname,
                           },
@@ -182,7 +182,7 @@ export const ProductListCard = (props: Props) => {
                         zIndex: 1,
                       }}
                     >
-                      {t("buttons.show")}
+                      {t("buttons.edit")}
                     </Button>
                   </Box>
 

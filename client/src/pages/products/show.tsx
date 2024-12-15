@@ -13,13 +13,12 @@ import Grid from "@mui/material/Unstable_Grid2";
 import Paper from "@mui/material/Paper";
 import {
    
-  OrderDetails,
-  OrderProducts,
+  
   Card,
-  ProductRawMaterialsMap,
 } from "../../components";
 import { RefineListView } from "../../components";
 import type { IProduct } from "../../interfaces";
+import { ProductRawMaterialsMap } from "../../components/order/map";
 
 export const ProductShow = () => {
   const t = useTranslate();

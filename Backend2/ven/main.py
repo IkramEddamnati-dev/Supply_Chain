@@ -1,48 +1,152 @@
 import json
-from typing import Any
-from fastapi import FastAPI, HTTPException
 from pathlib import Path
 from pydantic import BaseModel
 from web3 import Web3
-from model import *
+from typing import Any
+from fastapi import FastAPI, HTTPException, Depends
+import jwt
+from datetime import datetime, timedelta
+from typing import List 
+# OAuth2 Scheme for token verification
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
-
+from model import *
+from datetime import datetime
+from typing import List
+from fastapi import FastAPI, HTTPException
+from pydantic import Field
+# Load contract details
 supply_chain_path = Path("./artifacts/SupplyChain.json")
 with supply_chain_path.open("r") as file:
     supply_chain_data = json.load(file)
-app = FastAPI()
-CHAIN_ID=1337
 
-# Connexion à Ganache (en utilisant le réseau local)
-w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:7545'))  
+app = FastAPI()
+origins = [
+    "http://localhost",  # Allow localhost
+    "http://localhost:5173",  # React dev server (if applicable)
+    
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Vous pouvez spécifier les origines autorisées
+    allow_origins=origins,  # Allow these origins to access the API
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
 )
-# Vérifiez si la connexion a réussi
+
+# Blockchain setup
+CHAIN_ID = 1337
+w3 = Web3(Web3.HTTPProvider("http://127.0.0.1:7545"))
+
 if not w3.is_connected():
-    raise Exception("Impossible de se connecter à Ganache")
+    raise Exception("Unable to connect to Ganache")
 
-# L'adresse du contrat déployé et son ABI
-network_id =5777
+# Contract details
+network_id = 5777
 network_data = supply_chain_data["networks"].get(str(network_id))
-
 if not network_data:
-    raise Exception(f"Adresse du contrat introuvable pour le réseau ID {network_id}.")
-contract_abi =supply_chain_data.get("abi")
+    raise Exception(f"Contract address not found for network ID {network_id}.")
 
+contract_abi = supply_chain_data.get("abi")
 CONTRACT_ADDRESS = network_data["address"]
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
-# Connexion au contrat
-contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 
-# Adresse de l'owner (propriétaire du contrat)
-owner_address = "0x53C11588f217fdb6beaFFaa58ABa02051029caA8"  # Par défaut, l'adresse générée par Ganache
-private_key = "0x9f0920b5b7b7f76feb563859ab0f892d0611ab98c67c6144cc8880c055bf2cc9"  # Utilisé pour signer les transactions
+# Owner account details
+owner_address = "0x3A822f960C890A3299288A4888352c5cad0faEb0"
+private_key = "0xe01c2c3dc9b80354fa51ea459c3cbd6016181d0577ec7c94ee7ac6b97d8d0145"
 
+# JWT Secret Key for token generation
+SECRET_KEY = "AZERTGUYIMJLKJ?V123456789LK?NB0JHGFFDJ"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+### Models ###
+class UserCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str
+    userAddress: str
+
+class RawMaterialCreate(BaseModel):
+    name: str
+    description: str
+    price: int
+    image: str
+    origin: str  # Adresse sous forme de texte
+    latitude: float
+    longitude: float
+    userId:int
+
+class AddCategoryRequest(BaseModel):
+    title: str
+
+class AddProductRequest(BaseModel):
+    name: str
+    description: str
+    rwIds: list[int]  # Liste des IDs des matières premières
+    manufacturerId: int
+    categoryId: int
+    image: str
+    distributorId: int
+    price: int  
+
+class EditProductRequest(BaseModel):
+    name: str
+    description: str
+    rwIds: List[int]
+    categoryId: int
+    image: str
+
+class EditCategoryRequest(BaseModel):
+    title: str
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class CreateShipmentRequest(BaseModel):
+    sender_id: int
+    receiver_id: int
+    distributor_id: int
+    pickup_time: int  # Adjusted to handle ISO 8601 datetime strings
+    distance: int        # Adjusted to allow fractional values
+    price: int
+    description: str
+
+class User2(BaseModel):
+    id: int
+    email: str
+    name:str
+    
+
+class Shipment(BaseModel):
+    id:int
+    senderId: int
+    senderName: str
+    receiverId: int
+    receiverName: str
+    distributorId: int
+    pickupTime: datetime | None = Field(None, description="Pickup time as a datetime")
+    deliveryTime: datetime | None = Field(None, description="Delivery time as a datetime")
+    distance: int
+    price: int
+    description: str
+    status: int  # Use an Enum or int for status (0: Pending, 1: InTransit, 2: Delivered, 3: Canceled)
+    isPaid: bool
+class Config:
+        # Allow parsing UNIX timestamps into datetime objects automatically
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None,  # Handle None gracefully
+        }
+
+### Helper Functions ###
 
 # Route pour obtenir les utilisateurs par rôle
 @app.get("/users/{role}", response_model=list[User2])
@@ -52,40 +156,107 @@ async def get_users_by_role(role: str):
         users_data = contract.functions.getUsersByRole(role).call()
 
         # Si des utilisateurs existent, les retourner
-        users_list = [User2(name=user[1], email=user[2], location=user[4]) for user in users_data]
+        users_list = [User2(id=user[0],name=user[1], email=user[2]) for user in users_data]
         return users_list
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# Route pour ajouter un utilisateur
+# Function to generate JWT token
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+# Function to hash the password and verify against the contract's password hash
+def verify_password(plain_password: str, stored_password_hash: bytes):
+    # Generate the hash from the plain password
+    hashed_password = Web3.keccak(plain_password.encode('utf-8'))
+    
+    # Debugging
+    print(f"Debug: Hashed Password = {hashed_password}, Stored Hash = {stored_password_hash}")
+    
+    # Compare the raw binary hash with the stored hash
+    return hashed_password == stored_password_hash
+
+# Function to get user from the blockchain (in real use, retrieve from a DB or blockchain)
+def get_user_from_blockchain(email: str):
+    # Example function that retrieves user details from blockchain
+    users_count = contract.functions.userCount().call()
+    for i in range(1, users_count + 1):
+        user = contract.functions.users(i).call()  # Assuming this returns (name, email, password, role, address)
+        if user[2] == email:
+            return user
+    return None
+
+### API Endpoints ###
+@app.post("/login/", response_model=Token)
+async def login(user: UserLogin):
+    # Fetch the user from blockchain (simulating a DB lookup)
+    db_user = get_user_from_blockchain(user.email)
+    
+    if not db_user:
+        raise HTTPException(status_code=401, detail="user not found")
+    
+    # Verify the password (In real implementation, it would be hashed)
+    if not verify_password(user.password, db_user[3]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Create JWT token
+    access_token = create_access_token(data={"sub": user.email, "role": db_user[4],"iduser":db_user[0]}) 
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.post("/add_user/")
 async def add_user(user: UserCreate):
-    nonce = w3.eth.get_transaction_count(owner_address)
-    tx = contract.functions.addUser(
-        user.name,
-        user.email,
-        user.password,
-        user.role,
-        user.location
-    ).build_transaction({
-        'chainId': 1337,  # Ganache utilise souvent le chainId 1337
-        'gas': 2000000,
-        'gasPrice': w3.to_wei('20', 'gwei'),
-        'nonce': nonce,
-    })
+    try:
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.addUser(
+            user.name,
+            user.email,
+            user.password,
+            user.role,
+            user.userAddress
+        ).build_transaction({
+            'chainId': CHAIN_ID,
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
 
-    # Signer la transaction
-    signed_tx = w3.eth.account.sign_transaction(tx, private_key)
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    
-    # Attendre que la transaction soit minée
-    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-    
-    if receipt.status == 1:
-        return {"status": "success", "tx_hash": tx_hash.hex()}
-    else:
-        raise HTTPException(status_code=400, detail="Transaction failed")
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# Protected route that requires JWT authentication
+@app.get("/protected/")
+async def protected_route(token: str = Depends(oauth2_scheme)):
+    try:
+        # Decode the JWT token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        # Here, you can fetch the user from blockchain or DB based on the email
+        user = get_user_from_blockchain(email)
+        if user:
+            return {"msg": f"Hello {user[0]}, you have access to this protected route!"}
+        else:
+            raise HTTPException(status_code=404, detail="User not found")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.post("/raw_materials/")
 async def add_raw_material(raw_material: RawMaterialCreate):
@@ -99,7 +270,9 @@ async def add_raw_material(raw_material: RawMaterialCreate):
             raw_material.image,
             raw_material.origin,
             int(raw_material.latitude * 10**6),  # Conversion en int pour Solidity
-            int(raw_material.longitude * 10**6)  # Conversion en int pour Solidity
+            int(raw_material.longitude * 10**6),  # Conversion en int pour Solidity
+            raw_material.userId,
+
         ).build_transaction({
             'chainId': 1337,  # ID de votre réseau (1337 = Ganache local)
             'gas': 2000000,
@@ -121,14 +294,229 @@ async def add_raw_material(raw_material: RawMaterialCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Route pour obtenir l'historique d'un produit
+
+@app.post("/create_shipment")
+async def create_shipment(payload: CreateShipmentRequest):
+    try:
+        # Extract data from the payload
+        data = payload.dict()
+        sender_id = data['sender_id']
+        receiver_id = data['receiver_id']
+        distributor_id = data['distributor_id']
+        pickup_time = data['pickup_time']
+        distance = data['distance']
+        price = data['price']
+        description=data['description']
+
+        # Remaining code for transaction logic
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.createShipment(
+            sender_id,
+            receiver_id,
+            distributor_id,
+            pickup_time,
+            distance,
+            price,
+            description
+        ).build_transaction({
+            'chainId': CHAIN_ID,
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
+
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/start_shipment/{shipment_index}")
+async def start_shipment(shipment_index: int):
+    try:
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.startShipment(shipment_index).build_transaction({
+            'chainId': CHAIN_ID,
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
+
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/complete_shipment/{shipment_index}")
+async def complete_shipment(shipment_index: int):
+    try:
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.completeShipment(shipment_index).build_transaction({
+            'chainId': CHAIN_ID,
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
+
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# New endpoint: Get users by role
+from fastapi import HTTPException
+from typing import Optional
+
+@app.get("/getUser/{user_id}")
+async def get_user_by_id(user_id: int):
+
+    try:
+        
+        users_count = contract.functions.userCount().call()
+
+        for i in range(1, users_count + 1):
+            user = contract.functions.users(i).call()  # Assuming this returns (id, name, email, cne, role, address)
+            
+            # Log the raw user data to debug
+            print(f"Raw user data: {user}")
+
+            if user[0] == user_id:
+                return {
+                    "id": user[0],
+                    "name": user[1],
+                    "email": user[2],
+                    "cne": user[3],
+                    "role": user[4],
+                    "address": user[5]
+                }
+
+        return {"error": "User not found"}
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+
+# New endpoint: Get product history
 @app.get("/get_product_history/{product_id}")
 async def get_product_history(product_id: int):
     try:
-        history = contract.functions.getProductHistory(product_id).call()
-        return {"history": history}
+        product_history = contract.functions.getProductHistory(product_id).call()
+        history = []
+
+        for entry in product_history:
+            history.append({
+                "timestamp": entry[0],
+                "status": entry[1],  # Assuming status is the 2nd element
+                "location": entry[2],  # Assuming location is the 3rd element
+            })
+
+        return {"product_id": product_id, "history": history}
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# Function to fetch user data directly from the smart contract
+def get_user_data(user_id: int) -> dict:
+    try:
+        user_data = contract.functions.users(user_id).call()
+        return {"name": user_data[1]}  # Assuming the user's name is at index 0
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error fetching user data for ID {user_id}: {str(e)}")
+
+@app.get("/shipments", response_model=List[Shipment])
+async def get_shipments():
+    try:
+        ship_count = contract.functions.shipmentCount().call()
+        result = []
+        for i in range(1, ship_count + 1):
+            shipment = contract.functions.shipments(i).call()
+            sender_data = get_user_data(shipment[1])  
+            receiver_data = get_user_data(shipment[2])  
+            pickup_time = datetime.fromtimestamp(shipment[4]) if shipment[4] else None
+            delivery_time = datetime.fromtimestamp(shipment[5]) if shipment[5] else None
+
+            # Create Shipment object with sender and receiver names
+            shipment_data = Shipment(
+                id=shipment[0],
+                senderId=shipment[1],
+                senderName=sender_data["name"],
+                receiverId=shipment[2],
+                receiverName=receiver_data["name"],
+                distributorId=shipment[3],
+                pickupTime=pickup_time,
+                deliveryTime=delivery_time,
+                distance=shipment[6],
+                price=shipment[7],
+                description=shipment[8],
+                status=shipment[9],
+                isPaid=shipment[10]
+            )
+            result.append(shipment_data)
+
+        # Return the shipment data
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching shipments: {str(e)}")
+
+
+# Endpoint to get shipments by distributor ID
+@app.get("/shipments/{distributor_id}", response_model=List[Shipment])
+async def get_shipments_by_distributor(distributor_id: int):
+    try:
+        # Call the smart contract method to get shipments by distributor ID
+        shipments = contract.functions.getShipmentsByDistributor(distributor_id).call()
+
+        # For each shipment, fetch the sender and receiver names using the user contract
+        result = []
+        for shipment in shipments:
+            sender_data = get_user_data(shipment[1])  
+            receiver_data = get_user_data(shipment[2])  
+            pickup_time = datetime.fromtimestamp(shipment[4]) if shipment[4] else None
+            delivery_time = datetime.fromtimestamp(shipment[5]) if shipment[5] else None
+
+            # Create Shipment object with sender and receiver names
+            shipment_data = Shipment(
+                id=shipment[0],
+                senderId=shipment[1],
+                senderName=sender_data["name"],
+                receiverId=shipment[2],
+                receiverName=receiver_data["name"],
+                distributorId=shipment[3],
+                pickupTime=pickup_time,
+                deliveryTime=delivery_time,
+                distance=shipment[6],
+                price=shipment[7],
+                description=shipment[8],
+                status=shipment[9],
+                isPaid=shipment[10]
+            )
+            result.append(shipment_data)
+
+        # Return the shipment data
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching shipments: {str(e)}")
 @app.get("/raw_materials/")
 async def get_all_raw_materials():
     try:
@@ -142,6 +530,7 @@ async def get_all_raw_materials():
                 "name": raw_material[1],  # Nom
                 "description": raw_material[2],  # Description
                 "price": raw_material[3],  # Prix
+                "userId": raw_material[4],  # ID de l'utilisateur
                 "image": raw_material[5],  # Image
                 "origin": {
                     "text": raw_material[6][0],  # Texte de l'adresse
@@ -169,43 +558,42 @@ def add_category(request: AddCategoryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/products/")
-def add_product(request: AddProductRequest):
+async def create_product(product: AddProductRequest):
     try:
-        # Validation des IDs de matières premières
-        if any(rw_id <= 0 for rw_id in request.rwIds):
+        
+        if any(rw_id <= 0 for rw_id in product.rwIds):
             raise HTTPException(status_code=400, detail="Invalid raw material ID(s)")
 
-        # Construction de la transaction pour appeler la fonction Solidity
+        # Call createProduct function in smart contract
+        nonce = w3.eth.get_transaction_count(owner_address)
         tx = contract.functions.addProduct(
-            request.name,
-            request.description,
-            request.rwIds,
-            int(request.price),
-            
-            request.manufacturerId,
-            request.categoryId,
-            request.productAddress,
-            request.image
+            product.name,
+            product.description,
+            product.rwIds,
+            int(product.price),
+            product.distributorId,
+            product.manufacturerId,
+            product.categoryId,
+            product.productAddress,
+            product.image
         ).transact({'from': w3.eth.accounts[0]})  # Adresse à remplacer si nécessaire
 
-        # Attente de la réception de la transaction
-        receipt = w3.eth.wait_for_transaction_receipt(tx)
+        # Sign and send the transaction
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-        # Vérification du statut de la transaction
-        if receipt['status'] == 1:
-            return {
-                "message": "Product added successfully",
-                "transactionHash": receipt['transactionHash'].hex()
-            }
+        # Wait for transaction receipt
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
         else:
-            raise HTTPException(status_code=500, detail="Transaction failed on the blockchain")
+            raise HTTPException(status_code=400, detail="Transaction failed")
 
-    except ValueError as e:
-        # Gestion des erreurs spécifiques à Web3 ou Solidity
-        raise HTTPException(status_code=400, detail=f"Blockchain error: {str(e)}")
     except Exception as e:
-        # Gestion des autres exceptions
-        raise HTTPException(status_code=500, detail=f"Error adding product: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+   
 # Récupérer une catégorie par ID
 @app.get("/get_category/{category_id}")
 def get_category(category_id: int):
@@ -366,16 +754,6 @@ def get_all_categories():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching categories: {str(e)}")
-@app.get("/users/", response_model=list[User2])
-async def get_all_users():
-    try:
-        users_data = contract.functions.getAllUsers().call()
-
-        users_list = [User2(name=user[1], email=user[2],role=user[4],location=user[5]) for user in users_data]
-        return users_list
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 class UpdateStageProductRequest(BaseModel):
     product_id: int

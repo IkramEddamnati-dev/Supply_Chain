@@ -9,28 +9,27 @@ export interface IOrderChart {
     | "delivered"
     | "could not be delivered";
 }
-
-export interface IOrderTotalCount {
-  total: number;
-  totalDelivered: number;
+export interface IShipment {
+  id:number,
+  senderId: number;
+  senderName: string;
+  receiverId: number;
+  receiverName: string;
+  distributorId: number;
+  pickupTime: number; // Assuming time is in hours or timestamp
+  deliveryTime: number; // Assuming time is in hours or timestamp
+  distance: number; // Distance in kilometers
+  price: number; // Price in currency
+  description: string; // Shipment description
+  status: number; // Shipment status (e.g., 0 for Pending, 1 for Completed)
+  isPaid: boolean; // Payment status (true for paid, false for unpaid)
 }
 
-export interface ISalesChart {
-  date: string;
-  title: "Order Count" | "Order Amount";
-  value: number;
-}
-
-export interface IOrderStatus {
-  id: number;
-  text: "Pending" | "Ready" | "On The Way" | "Delivered" | "Cancelled";
-}
 
 export interface IUser {
   id: number;
-  name:string;
-  firstName: string;
-  lastName: string;
+  name: string;
+  email: string;
   fullName: string;
   gender: string;
   gsm: string;
@@ -77,19 +76,7 @@ export interface IRMS {
   
 }
 
-export interface IOrder {
-  id: number;
-  user: IUser;
-  createdAt: string;
-  products: IProduct[];
-  status: IOrderStatus;
-  adress: IAddress;
-  store: IStore;
-  courier: ICourier;
-  events: IEvent[];
-  orderNumber: number;
-  amount: number;
-}
+
 
 export interface IProduct {
   id: number;
@@ -104,6 +91,8 @@ export interface IProduct {
   produitOriginID: number;
   productAddress: string;
   stage: number;
+  distributorId:number;
+
 }
 
 export interface ICategory {
@@ -112,51 +101,7 @@ export interface ICategory {
   isActive: boolean;
 }
 
-export interface IOrderFilterVariables {
-  q?: string;
-  store?: string;
-  user?: string;
-  status?: string[];
-}
 
-export interface IUserFilterVariables {
-  q: string;
-  status: boolean;
-  gender: string;
-  isActive: boolean | string;
-}
-
-export interface ICourierStatus {
-  id: number;
-  text: "Available" | "Offline" | "On delivery";
-}
-
-export interface ICourier {
-  id: number;
-  name: string;
-  surname: string;
-  email: string;
-  gender: string;
-  gsm: string;
-  createdAt: string;
-  accountNumber: string;
-  licensePlate: string;
-  address: string;
-  avatar: IFile[];
-  store: IStore;
-  status: ICourierStatus;
-  vehicle: IVehicle;
-}
-
-export interface IReview {
-  id: number;
-  order: IOrder;
-  user: IUser;
-  star: number;
-  createDate: string;
-  status: "pending" | "approved" | "rejected";
-  comment: string[];
-}
 
 export interface ITrendingProducts {
   id: number;
@@ -164,14 +109,7 @@ export interface ITrendingProducts {
   orderCount: number;
 }
 
-export type IVehicle = {
-  model: string;
-  vehicleType: string;
-  engineSize: number;
-  color: string;
-  year: number;
-  id: number;
-};
+
 
 export type Nullable<T> = {
   [P in keyof T]: T[P] | null;

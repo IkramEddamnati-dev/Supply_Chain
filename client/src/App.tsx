@@ -27,10 +27,9 @@ import StoreOutlinedIcon from "@mui/icons-material/StoreOutlined";
 import Box from "@mui/material/Box";
 import { authProvider } from "./authProvider";
 import { DashboardPage } from "./pages/dashboard";
-import { OrderList, OrderShow } from "./pages/orders";
-import { CustomerShow, CustomerList } from "./pages/customers";
-import { CourierList, CourierCreate, CourierEdit } from "./pages/couriers";
-import { AuthPage } from "./pages/auth";
+
+import { ShipmentList } from "./pages/couriers";
+import AuthPage from "./pages/auth";
 import { StoreList, StoreEdit, StoreCreate } from "./pages/stores";
 import { ProductEdit, ProductList, ProductCreate } from "./pages/products";
 import { CategoryList } from "./pages/categories";
@@ -38,25 +37,108 @@ import { ColorModeContextProvider } from "./contexts";
 import { Header, Title } from "./components";
 import { useAutoLoginForDemo } from "./hooks";
 import { ProductShow } from "./pages/products/show";
+import PrivateRoute from "./PrivateRoute";
+import { useEffect, useState } from "react";
 
 const API_URL = "http://127.0.0.1:8000";
 
 const App: React.FC = () => {
-  // This hook is used to automatically login the user.
-  // We use this hook to skip the login page and demonstrate the application more quickly.
-  const { loading } = useAutoLoginForDemo();
-
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<string>("");
   const { t, i18n } = useTranslation();
+  const TOKEN_KEY = "refine-auth-token";
+  // Simulate user authentication (replace this with your actual login mechanism)
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY)
+  
+    if (token) {
+      // Replace with actual logic to fetch user data and role
+      setIsAuthenticated(true);
+      const storedRole = localStorage.getItem("userRole");
+      setUserRole(storedRole || ""); 
+    }
+  }, []);
+
+  const resources = [
+    {
+      name: "dashboard",
+      list: "/",
+      meta: {
+        label: "Dashboard",
+        icon: <Dashboard />,
+      },
+    },
+    {
+      name: "users",
+      list: "/customers",
+      show: "/customers/:id",
+      meta: {
+        icon: <AccountCircleOutlinedIcon />,
+      },
+    },
+    {
+      name: "products",
+      list: "/products",
+      create: "/products/new",
+      edit: "/products/:id/edit",
+      show: "/products/:id",
+      meta: {
+        icon: <FastfoodOutlinedIcon />,
+      },
+    },
+    {
+      name: "categories",
+      list: "/categories",
+      meta: {
+        icon: <LabelOutlinedIcon />,
+      },
+    },
+    {
+      name: "raw_materials",
+      list: "/raw_materials",
+      create: "/raw_materials/new",
+      edit: "/raw_materials/:id/edit",
+      meta: {
+        icon: <StoreOutlinedIcon />,
+      },
+    },
+    {
+      name: "shipement",
+      list: "/shipements",
+      meta: {
+        icon: <MopedOutlined />,
+      },
+    },
+  ];
+  console.log(userRole)
+  // Filter resources based on the user role
+  const filteredResources = resources.filter(resource => {
+    if (userRole === 'Manufacture') {
+      return ['products','dashboard','categories'].includes(resource.name);
+    }
+    if (userRole === 'Raw_Material') {
+      return ['raw_materials','dashboard'].includes(resource.name);
+    }
+
+    // Example: Regular user cannot access 'users' or 'raw_materials'
+    if (userRole === 'Distribution') {
+      return ['dashboard', 'shipement','dashboard'].includes(resource.name);
+    }
+
+    if (userRole === 'Customer') {
+      return ['products','dashboard','categories'].includes(resource.name);
+    }
+
+    // Default fallback: Show resources for 'guest' or other roles
+    return false;
+  });
   const i18nProvider = {
     translate: (key: string, params: object) => t(key, params),
     changeLocale: (lang: string) => i18n.changeLanguage(lang),
     getLocale: () => i18n.language,
   };
 
-  if (loading) {
-    return null;
-  }
-
+ 
   return (
     <BrowserRouter>
       <KBarProvider>
@@ -69,220 +151,86 @@ const App: React.FC = () => {
               dataProvider={dataProvider(API_URL)}
               authProvider={authProvider}
               i18nProvider={i18nProvider}
-              options={{
-                syncWithLocation: true,
-                warnWhenUnsavedChanges: true,
-                breadcrumb: false,
-                useNewQueryKeys: true,
-              }}
               notificationProvider={useNotificationProvider}
-              resources={[
-                {
-                  name: "dashboard",
-                  list: "/",
-                  meta: {
-                    label: "Dashboard",
-                    icon: <Dashboard />,
-                  },
-                },
-                {
-                  name: "orders",
-                  list: "/orders",
-                  show: "/orders/:id",
-                  meta: {
-                    icon: <ShoppingBagOutlinedIcon />,
-                  },
-                },
-                
-                {
-                  name: "users",
-                  list: "/customers",
-                  show: "/customers/:id",
-                  meta: {
-                    icon: <AccountCircleOutlinedIcon />,
-                  },
-                },
-                {
-                  name: "products",
-                  list: "/products",
-                  create: "/products/new",
-                  edit: "/products/:id/edit",
-                  show: "/products/:id",
-                  meta: {
-                    icon: <FastfoodOutlinedIcon />,
-                  },
-                },
-                {
-                  name: "categories",
-                  list: "/categories",
-                  meta: {
-                    icon: <LabelOutlinedIcon />,
-                  },
-                },
-                {
-                  name: "raw_materials",
-                  list: "/raw_materials",
-                  create: "/raw_materials/new",
-                  edit: "/raw_materials/:id/edit",
-                  meta: {
-                    icon: <StoreOutlinedIcon />,
-                  },
-                },
-                {
-                  name: "couriers",
-                  list: "/couriers",
-                  create: "/couriers/new",
-                  edit: "/couriers/:id/edit",
-                  meta: {
-                    icon: <MopedOutlined />,
-                  },
-                },
-              ]}
+              resources={filteredResources}
             >
+              
               <Routes>
+                
                 <Route
                   element={
-                    <Authenticated
-                      key="authenticated-routes"
-                      fallback={<CatchAllNavigate to="/login" />}
-                    >
-                      <ThemedLayoutV2 Header={Header} Title={Title}>
-                        <Box
-                          sx={{
-                            maxWidth: "1200px",
-                            marginLeft: "auto",
-                            marginRight: "auto",
-                          }}
-                        >
-                          <Outlet />
-                        </Box>
-                      </ThemedLayoutV2>
-                    </Authenticated>
-                  }
-                >
-                  <Route index element={<DashboardPage />} />
-
-                  <Route path="/orders">
-                    <Route index element={<OrderList />} />
-                    <Route path=":id" element={<OrderShow />} />
-                  </Route>
-                  <Route
-                    path="/customers"
-                    element={
-                      <CustomerList>
-                        <Outlet />
-                      </CustomerList>
-                    }
-                  >
-                    <Route path=":id" element={<CustomerShow />} />
-                  </Route>
-
-                  <Route
-                    path="/products"
-                    element={
-                      <ProductList>
-                        <Outlet />
-                      </ProductList>
-                    }
-                  >
-                    <Route path=":id/edit" element={<ProductEdit />} />
-                    <Route path="new" element={<ProductCreate />} />
-                    <Route path=":id" element={< ProductShow/>} />
-
-                  </Route>
-
-                  <Route path="/raw_materials">
-                    <Route index element={<StoreList />} />
-                    <Route path="new" element={<StoreCreate />} />
-                    <Route path=":id/edit" element={<StoreEdit />} />
-                  </Route>
-
-                  <Route path="/categories" element={<CategoryList />} />
-
-                  <Route path="/couriers">
-                    <Route
-                      path=""
-                      element={
-                        <CourierList>
-                          <Outlet />
-                        </CourierList>
-                      }
-                    >
-                      <Route path="new" element={<CourierCreate />} />
-                    </Route>
-
-                    <Route path=":id/edit" element={<CourierEdit />} />
-                  </Route>
-                </Route>
-
-                <Route
-                  element={
-                    <Authenticated key="auth-pages" fallback={<Outlet />}>
-                      <NavigateToResource resource="dashboard" />
-                    </Authenticated>
+                    <ThemedLayoutV2 Header={Header} Title={Title}>
+                      <Outlet />
+                    </ThemedLayoutV2>
                   }
                 >
                   <Route
-                    path="/login"
-                    element={
-                      <AuthPage
-                        type="login"
-                        formProps={{
-                          defaultValues: {
-                            email: "demo@refine.dev",
-                            password: "demodemo",
-                          },
-                        }}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/register"
-                    element={
-                      <AuthPage
-                        type="register"
-                        formProps={{
-                          defaultValues: {
-                            email: "demo@refine.dev",
-                            password: "demodemo",
-                          },
-                        }}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/forgot-password"
-                    element={
-                      <AuthPage
-                        type="forgotPassword"
-                        formProps={{
-                          defaultValues: {
-                            email: "demo@refine.dev",
-                          },
-                        }}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/update-password"
-                    element={<AuthPage type="updatePassword" />}
-                  />
+              path="/"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<DashboardPage />} />
+              }
+            />
+             
+            <Route
+              path="/products"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ProductList />} />
+              }
+            />
+            <Route
+              path="/products/new"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ProductCreate />} />
+              }
+            />
+            <Route
+              path="/products/:id"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ProductShow />} />
+              }
+            />
+            <Route
+              path="/raw_materials"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreList />} />
+              }
+            />
+            <Route
+              path="/raw_materials/new"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreCreate />} />
+              }
+            />
+            <Route
+              path="/raw_materials/:id/edit"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreEdit />} />
+              }
+            />
+            <Route
+              path="/categories"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<CategoryList />} />
+              }
+            />
+            <Route
+              path="/shipements"
+              element={
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ShipmentList />} />
+              }
+            />
+            
+
                 </Route>
 
-                <Route
-                  element={
-                    <Authenticated key="catch-all">
-                      <ThemedLayoutV2 Header={Header} Title={Title}>
-                        <Outlet />
-                      </ThemedLayoutV2>
-                    </Authenticated>
-                  }
-                >
-                  <Route path="*" element={<ErrorComponent />} />
-                </Route>
+                {/* Login and Registration Routes */}
+                
+                <Route path="/login" element={<AuthPage type="login" />} />
+                <Route path="/register" element={<AuthPage type="register" />} />
+
+                {/* Catch-all route for errors */}
+                <Route path="*" element={<ErrorComponent />} />
               </Routes>
-              <UnsavedChangesNotifier />
-              <DocumentTitleHandler />
             </Refine>
           </RefineSnackbarProvider>
         </ColorModeContextProvider>

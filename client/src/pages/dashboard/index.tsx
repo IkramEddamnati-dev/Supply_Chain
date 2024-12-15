@@ -1,341 +1,237 @@
-import React, { useMemo, useState } from "react";
-import { useApiUrl, useCustom, useTranslate } from "@refinedev/core";
-import dayjs from "dayjs";
+import React, { useEffect, useState } from "react";
+import { useTranslate } from "@refinedev/core";
 import Grid from "@mui/material/Grid";
 import { NumberField } from "@refinedev/mui";
-import MonetizationOnOutlinedIcon from "@mui/icons-material/MonetizationOnOutlined";
-import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
-import WatchLaterOutlinedIcon from "@mui/icons-material/WatchLaterOutlined";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import Typography from "@mui/material/Typography";
+import { Card } from "../../components";
 import {
-  DailyOrders,
-  DailyRevenue,
-  DeliveryMap,
-  NewCustomers,
-  OrderTimeline,
-  RecentOrders,
-  TrendingMenu,
-} from "../../components/dashboard";
-import { TrendIcon } from "../../components/icons";
-import { Card, RefineListView } from "../../components";
-import type { IOrderChart, ISalesChart } from "../../interfaces";
-
-type DateFilter = "lastWeek" | "lastMonth";
-
-const DATE_FILTERS: Record<
-  DateFilter,
-  {
-    text: string;
-    value: DateFilter;
-  }
-> = {
-  lastWeek: {
-    text: "lastWeek",
-    value: "lastWeek",
-  },
-  lastMonth: {
-    text: "lastMonth",
-    value: "lastMonth",
-  },
-};
+  BarChart,
+  PieChart,
+  LineChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Bar,
+  Line,
+  Pie,
+  Cell,
+} from "recharts";
+import {
+  MonetizationOnOutlined,
+  ShoppingBagOutlined,
+  AssessmentOutlined,
+} from "@mui/icons-material";
 
 export const DashboardPage: React.FC = () => {
   const t = useTranslate();
-  const API_URL = useApiUrl();
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const [selecetedDateFilter, setSelectedDateFilter] = useState<DateFilter>(
-    DATE_FILTERS.lastWeek.value,
-  );
+  const fetchData = async () => {
+    try {
+      const [shipmentsResponse, productsResponse, materialsResponse] = await Promise.all([
+        fetch("http://127.0.0.1:8000/shipments").then((res) => res.json()),
+        fetch("http://127.0.0.1:8000/products").then((res) => res.json()),
+        fetch("http://127.0.0.1:8000/raw_materials").then((res) => res.json()),
+      ]);
 
-  const dateFilterQuery = useMemo(() => {
-    const now = dayjs();
-    switch (selecetedDateFilter) {
-      case "lastWeek":
-        return {
-          start: now.subtract(6, "days").startOf("day").format(),
-          end: now.endOf("day").format(),
-        };
-      case "lastMonth":
-        return {
-          start: now.subtract(1, "month").startOf("day").format(),
-          end: now.endOf("day").format(),
-        };
-      default:
-        return {
-          start: now.subtract(7, "days").startOf("day").format(),
-          end: now.endOf("day").format(),
-        };
+      setShipments(shipmentsResponse);
+      setProducts(productsResponse);
+      setMaterials(materialsResponse);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setLoading(false);
     }
-  }, [selecetedDateFilter]);
+  };
 
-  const { data: dailyRevenueData } = useCustom<{
-    data: ISalesChart[];
-    total: number;
-    trend: number;
-  }>({
-    url: `${API_URL}/dailyRevenue`,
-    method: "get",
-    config: {
-      query: dateFilterQuery,
-    },
-  });
-  const dailyRevenue = dailyRevenueData?.data;
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const { data: dailyOrdersData } = useCustom<{
-    data: IOrderChart[];
-    total: number;
-    trend: number;
-  }>({
-    url: `${API_URL}/dailyOrders`,
-    method: "get",
-    config: {
-      query: dateFilterQuery,
-    },
-  });
-  const dailyOrders = dailyOrdersData?.data;
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
-  const { data: newCustomersData } = useCustom<{
-    data: ISalesChart[];
-    total: number;
-    trend: number;
-  }>({
-    url: `${API_URL}/newCustomers`,
-    method: "get",
-    config: {
-      query: dateFilterQuery,
-    },
-  });
-  const newCustomers = newCustomersData?.data;
+  // Calculate metrics
+  const totalRevenue = [
+    ...shipments.map((s) => s.price || 0),
+    ...products.map((p) => p.price || 0),
+    ...materials.map((m) => m.price || 0),
+  ].reduce((acc, value) => acc + value, 0);
+
+  const totalShipments = shipments.length;
+  const totalProducts = products.length;
+
+  const statusBreakdown = shipments.reduce((acc, shipment) => {
+    acc[shipment.status] = (acc[shipment.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const statusMapping: { [key: string]: string } = {
+    "0": "Pending",
+    "1": "In Transit",
+    "2": "Delivered",
+  };
+
+  const statusData = Object.keys(statusBreakdown).map((status) => ({
+    name: statusMapping[status] || `Status ${status}`,
+    value: statusBreakdown[status],
+  }));
+
+  const revenueTrendData = shipments.map((shipment) => ({
+    date: shipment.date,
+    revenue: shipment.price,
+  }));
+
+  const productPriceData = products.map((product) => ({
+    name: product.name,
+    price: product.price,
+  }));
+
+  const materialPriceTrend = materials.map((material) => ({
+    name: material.name,
+    price: material.price,
+  }));
+
+  // Bar Chart for Shipments by Month
+  const shipmentsByMonth = shipments.reduce((acc, shipment) => {
+    const month = new Date(shipment.date).getMonth();
+    acc[month] = (acc[month] || 0) + 1;
+    return acc;
+  }, {});
+
+  const shipmentsMonthlyData = Object.keys(shipmentsByMonth).map((month) => ({
+    month,
+    shipments: shipmentsByMonth[month],
+  }));
 
   return (
-    <RefineListView
-      headerButtons={() => (
-        <Select
-          size="small"
-          value={selecetedDateFilter}
-          onChange={(e) => setSelectedDateFilter(e.target.value as DateFilter)}
-          sx={{
-            width: "160px",
-            backgroundColor: (theme) => theme.palette.background.paper,
-          }}
+    <Grid container spacing={3}>
+      {/* Overall Metrics */}
+      <Grid item xs={12} sm={4}>
+        <Card
+          title={t("Total Revenue")}
+          icon={<MonetizationOnOutlined style={{ color: "#4caf50" }} />}
+          style={{ background: "#e8f5e9" }}
         >
-          {Object.values(DATE_FILTERS).map((filter) => {
-            return (
-              <MenuItem key={filter.value} value={filter.value}>
-                <Typography color="text.secondary" lineHeight="24px">
-                  {t(`dashboard.filter.date.${filter.text}`)}
-                </Typography>
-              </MenuItem>
-            );
-          })}
-        </Select>
-      )}
-    >
-      <Grid container columns={24} spacing={3}>
-        <Grid
-          item
-          xs={24}
-          sm={24}
-          md={24}
-          lg={24}
-          xl={10}
-          sx={{
-            height: "264px",
-          }}
-        >
-          <Card
-            title={t("dashboard.dailyRevenue.title")}
-            icon={<MonetizationOnOutlinedIcon />}
-            sx={{
-              ".MuiCardContent-root:last-child": {
-                paddingBottom: "24px",
-              },
-            }}
-            cardContentProps={{
-              sx: {
-                height: "208px",
-              },
-            }}
-            cardHeaderProps={{
-              action: (
-                <TrendIcon
-                  trend={dailyRevenue?.trend}
-                  text={
-                    <NumberField
-                      value={dailyRevenue?.trend || 0}
-                      options={{
-                        style: "currency",
-                        currency: "USD",
-                      }}
-                    />
-                  }
-                />
-              ),
-            }}
-          >
-            <DailyRevenue data={dailyRevenueData?.data.data || []} />
-          </Card>
-        </Grid>
-        <Grid
-          item
-          xs={24}
-          sm={24}
-          md={24}
-          lg={12}
-          xl={7}
-          sx={{
-            height: "264px",
-          }}
-        >
-          <Card
-            title={t("dashboard.dailyOrders.title")}
-            icon={<ShoppingBagOutlinedIcon />}
-            sx={{
-              ".MuiCardContent-root:last-child": {
-                paddingBottom: "24px",
-              },
-            }}
-            cardContentProps={{
-              sx: {
-                height: "208px",
-              },
-            }}
-            cardHeaderProps={{
-              action: (
-                <TrendIcon
-                  trend={dailyOrders?.trend}
-                  text={<NumberField value={dailyOrders?.trend || 0} />}
-                />
-              ),
-            }}
-          >
-            <DailyOrders data={dailyOrders?.data || []} />
-          </Card>
-        </Grid>
-        <Grid
-          item
-          xs={24}
-          sm={24}
-          md={24}
-          lg={12}
-          xl={7}
-          sx={{
-            height: "264px",
-          }}
-        >
-          <Card
-            title={t("dashboard.newCustomers.title")}
-            icon={<AccountCircleOutlinedIcon />}
-            sx={{
-              ".MuiCardContent-root:last-child": {
-                paddingBottom: "24px",
-              },
-            }}
-            cardContentProps={{
-              sx: {
-                height: "208px",
-              },
-            }}
-            cardHeaderProps={{
-              action: (
-                <TrendIcon
-                  trend={newCustomers?.trend}
-                  text={<NumberField value={newCustomers?.trend || 0} />}
-                />
-              ),
-            }}
-          >
-            <NewCustomers data={newCustomers?.data || []} />
-          </Card>
-        </Grid>
-        <Grid
-          item
-          xs={24}
-          sm={24}
-          md={24}
-          lg={15}
-          xl={15}
-          sx={{
-            height: "504px",
-          }}
-        >
-          <Card
-            icon={<PlaceOutlinedIcon />}
-            title={t("dashboard.deliveryMap.title")}
-            cardContentProps={{
-              sx: {
-                height: "424px",
-              },
-            }}
-          >
-            <DeliveryMap />
-          </Card>
-        </Grid>
-        <Grid
-          item
-          xs={24}
-          sm={24}
-          md={24}
-          lg={9}
-          xl={9}
-          sx={{
-            height: "504px",
-          }}
-        >
-          <Card
-            icon={<WatchLaterOutlinedIcon />}
-            title={t("dashboard.timeline.title")}
-          >
-            <OrderTimeline />
-          </Card>
-        </Grid>
-        <Grid
-          item
-          xs={24}
-          sm={24}
-          md={24}
-          lg={15}
-          xl={15}
-          sx={{
-            height: "800px",
-          }}
-        >
-          <Card
-            icon={<ShoppingBagOutlinedIcon />}
-            title={t("dashboard.recentOrders.title")}
-            cardContentProps={{
-              sx: {
-                height: "688px",
-              },
-            }}
-          >
-            <RecentOrders />
-          </Card>
-        </Grid>
-        <Grid
-          item
-          xs={24}
-          sm={24}
-          md={24}
-          lg={9}
-          xl={9}
-          sx={{
-            height: "max-content",
-          }}
-        >
-          <Card
-            icon={<TrendingUpIcon />}
-            title={t("dashboard.trendingProducts.title")}
-          >
-            <TrendingMenu />
-          </Card>
-        </Grid>
+           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+          <NumberField
+            value={totalRevenue}
+            label="Total Revenue"
+            options={{ style: "currency", currency: "USD" }}
+            sx={{ fontSize: "2rem", textAlign: "center"  }}
+          />
+          </div>
+        </Card>
       </Grid>
-    </RefineListView>
+      <Grid item xs={12} sm={4}>
+  <Card
+    title={t("Total Shipments")}
+    icon={<ShoppingBagOutlined style={{ color: "#2196f3" }} />}
+    style={{ background: "#e3f2fd" }}
+  >
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+      <NumberField
+        value={totalShipments}
+        label="Total Shipments"
+        sx={{ fontSize: "2rem", textAlign: "center" }}
+      />
+    </div>
+  </Card>
+</Grid>
+
+      <Grid item xs={12} sm={4}>
+        <Card
+          title={t("Total Products")}
+          icon={<AssessmentOutlined style={{ color: "#f57c00" }} />}
+          style={{ background: "#fff3e0" }}
+        >
+           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+          <NumberField
+            value={totalProducts}
+            label="Total Products"
+            sx={{ fontSize: "2rem" , textAlign: "center" }}
+          />
+          </div>
+        </Card>
+      </Grid>
+
+      {/* Revenue Trend */}
+      <Grid item xs={12} md={6}>
+        <Card title={t("Revenue Trend")}>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={revenueTrendData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="revenue" stroke="#8884d8" />
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+      </Grid>
+
+      {/* Shipment Status Distribution */}
+      <Grid item xs={12} md={6}>
+        <Card title={t("Shipment Status Distribution")}>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={statusData}
+                dataKey="value"
+                nameKey="name"
+                labelLine={false}
+                outerRadius={80}
+                fill="#82ca9d"
+              >
+                {statusData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={index % 2 === 0 ? "#8884d8" : "#82ca9d"}
+                  />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
+      </Grid>
+
+      {/* Product Prices */}
+      <Grid item xs={12} md={6}>
+        <Card title={t("Product Prices")}>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={productPriceData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="price" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      </Grid>
+
+      {/* Raw Material Price Trends */}
+      <Grid item xs={12} md={6}>
+        <Card title={t("Raw Material Price Trends")}>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={materialPriceTrend}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="price" stroke="#82ca9d" />
+            </LineChart>
+          </ResponsiveContainer>
+        </Card>
+      </Grid>
+    </Grid>
   );
 };

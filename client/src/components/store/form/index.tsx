@@ -1,3 +1,4 @@
+import React from "react";
 import { useTranslate } from "@refinedev/core";
 import { Controller } from "react-hook-form";
 import Box from "@mui/material/Box";
@@ -19,13 +20,20 @@ type Props = {
 
 export const StoreForm = (props: Props) => {
   const t = useTranslate();
-  const { register, control, formState: { errors }, saveButtonProps, setValue, handleAddressChange } = props.form;
+  const {
+    register,
+    control,
+    formState: { errors },
+    saveButtonProps,
+    setValue,
+    handleAddressChange,
+  } = props.form;
+
 
   return (
     <form>
       <Card sx={{ display: "flex", flexDirection: "column", gap: "24px", padding: "24px" }}>
         {/* Name Field */}
-        
         <FormControl fullWidth>
           <Controller
             name="name"
@@ -135,6 +143,7 @@ export const StoreForm = (props: Props) => {
           {errors.price && <FormHelperText error>{errors.price.message}</FormHelperText>}
         </FormControl>
 
+        {/* Hidden Fields */}
         <Box sx={{ display: "none" }}>
           <input {...register("latitude", { required: true })} type="hidden" />
           <input {...register("longitude", { required: true })} type="hidden" />

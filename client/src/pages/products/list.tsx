@@ -66,7 +66,8 @@ export const ProductList = ({ children }: PropsWithChildren) => {
       pageSize: 12,
     },
   });
-  const produits = dataGrid?.current || [];
+  const storedRole = localStorage.getItem("userRole");
+
   const { data: categoriesData } = useList<ICategory>({
     resource: "categories",
     pagination: {
@@ -154,7 +155,7 @@ export const ProductList = ({ children }: PropsWithChildren) => {
               <BorderAllOutlinedIcon />
             </ToggleButton>
           </ToggleButtonGroup>,
-         
+          storedRole !== "Customer" && (
           <CreateButton
             {...props.createButtonProps}
             key="create"
@@ -174,7 +175,8 @@ export const ProductList = ({ children }: PropsWithChildren) => {
             }}
           >
             {t("products.actions.add")}
-          </CreateButton>,
+          </CreateButton>),
+         
           <Button onClick={handleOpen}>Add From other Product</Button>
         ]}
       >

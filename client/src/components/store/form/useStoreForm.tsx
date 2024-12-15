@@ -12,12 +12,14 @@ export interface IRMS {
   origin: string;
   longitude:number;
   latitude:number;
+  userId:number;
   
 }
 type Props = {
   action: "create" | "edit";
   onMutationSuccess?: () => void;
 };
+const userId = Number(localStorage.getItem("userId"));
 
 export const useStoreForm = (props: Props) => {
   const form = useForm<IRMS, HttpError, IRMS>({
@@ -29,6 +31,7 @@ export const useStoreForm = (props: Props) => {
       origin: "",
       latitude: undefined,
       longitude: undefined,
+      userId:userId,
     },
     refineCoreProps: {
       action: props.action,
@@ -51,7 +54,6 @@ export const useStoreForm = (props: Props) => {
       form.setValue("origin", store.origin);
       form.setValue("latitude", store.latitude);
       form.setValue("longitude", store.longitude);
-
       setLatLng({
         lat: store.latitude ?? 33.5731,
         lng: store.longitude ?? -7.5898,

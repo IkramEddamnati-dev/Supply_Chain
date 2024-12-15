@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 
 
-# Modèle pour ajouter un utilisateur
+### Models ###
 class UserCreate(BaseModel):
     name: str
     email: str
@@ -14,7 +14,8 @@ class User2(BaseModel):
     name: str
     email: str
     role: str
-    location:str
+    userAddress: str
+
 
 class RawMaterialCreate(BaseModel):
     name: str
