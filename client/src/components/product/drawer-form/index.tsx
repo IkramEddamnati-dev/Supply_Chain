@@ -24,7 +24,8 @@
   import FormLabel from "@mui/material/FormLabel";
   import { Drawer, DrawerHeader, ProductImageUpload } from "../../../components";
   import { useImageUpload } from "../../../utils";
-  import type { ICategory, IFile, IProduct, Nullable } from "../../../interfaces";
+  import type { ICategory, IFile, IProduct, IUser, Nullable } from "../../../interfaces";
+  import { useEffect } from "react";
 
   type Props = {
     action: "create" | "edit";
@@ -54,7 +55,10 @@
         type: "replace",
       });
     };
+const manifactureId = localStorage.getItem("userId");
 
+// Conversion de la valeur récupérée en nombre si elle existe et n'est pas nulle
+const manufacturerId = manifactureId ? Number(manifactureId) : null;
     const {
       watch,
       control,
@@ -69,10 +73,11 @@
         description: "",
         rwIds:[],
         price: 0,
-        manufacturerId:0,
+        manufacturerId:manufacturerId,
         categoryId: null,
         isActive: true,
         image: "",
+        distributorId:null
       },
       refineCoreProps: {
         redirect: false,
@@ -88,8 +93,8 @@
     const { autocompleteProps } = useAutocomplete<ICategory>({
       resource: "categories",
     });
-    const { autocompleteProps:user } = useAutocomplete<ICategory>({
-      resource: "users",
+    const { autocompleteProps:user } = useAutocomplete<IUser>({
+      resource: "users/Distribution",
     });
     const { autocompleteProps: rawMaterialsAutocompleteProps } =
     useAutocomplete({
@@ -97,14 +102,47 @@
     });
 
   const rawMaterialsOptions = rawMaterialsAutocompleteProps?.options || [];
-  const { data, isLoading } = useCustom({
-    url: "/users/manufacture", 
-    method: "get", 
-  });
 
-  const users = data?.data || []; // Liste des utilisateurs avec le rôle "manufacture"
+  const users = user?.options || []; // Liste des utilisateurs avec le rôle "manufacture"
 
-    
+  const generatePrice = (rwIds: number[], rawMaterials: any[]) => {
+    const basePrice = rwIds.reduce((total, rwId) => {
+      const rawMaterial = rawMaterials.find(rm => rm.id === rwId);
+      if (!rawMaterial) {
+        throw new Error(`Raw material with ID ${rwId} not found`);
+      }
+      return total + rawMaterial.price;
+    }, 0);
+  
+    const shipmentCost = rwIds.length * 100;
+    const finalPrice = (basePrice + shipmentCost) * 1.5;
+  
+    // Round the final price to ensure it's an integer
+    return Math.floor(finalPrice); // or Math.round(finalPrice) if you want rounding
+  };
+  
+  useEffect(() => {
+    const subscription = watch((value) => {
+      if (value.rwIds) {
+        const filteredRwIds = value.rwIds.filter((id): id is number => id !== undefined);
+        
+        // Convert rawMaterialsOptions (readonly any[]) into a modifiable array
+        const modifiableRawMaterials = [...rawMaterialsOptions];
+        
+        // Call generatePrice with the modifiable rawMaterials array
+        const price = generatePrice(filteredRwIds, modifiableRawMaterials);
+        
+      
+        setValue("price", price);
+      }
+    });
+  
+    return () => subscription.unsubscribe();
+  }, [watch, rawMaterialsOptions, setValue]);
+  
+  
+  
+  
 
     return (
       <Drawer
@@ -144,7 +182,7 @@
                     variant="outlined"
                     id="image"
                     label={t("image")}
-                    placeholder={t("products.fields.image")}
+                    placeholder={"Image"}
                   />
                 );
               }}
@@ -216,7 +254,6 @@
                 )}
               </FormControl>
               <FormControl fullWidth>
-    <FormLabel>{t("products.fields.rwIds")}</FormLabel>
     <Controller
       control={control}
       name="rwIds"
@@ -237,12 +274,13 @@
             // Mettre à jour seulement les identifiants sélectionnés
             const ids = value.map((item) => item.id);
             field.onChange(ids);
+        
           }}
           renderInput={(params) => (
             <TextField
               {...params}
-              label={t("products.fields.rwIds")}
-              placeholder={t("products.fields.rwIds")}
+              label={"Raw Materials"}
+              placeholder={"Raw Materials"}
               error={!!errors.rwIds}
               helperText={errors.rwIds?.message}
             />
@@ -254,28 +292,29 @@
       <FormHelperText error>{errors.rwIds.message}</FormHelperText>
     )}
   </FormControl>
-  {/* <FormControl fullWidth>
+   <FormControl fullWidth>
       <Controller
         control={control}
-        name="manufacturerId"
+        name="distributorId"
         defaultValue={null}
         rules={{
           required: "Manufacturer is required !",
         }}
         render={({ field }) => (
+          
           <Autocomplete
-            id="manufacturerId"
+            id="distributorId"
             options={users}
-            getOptionLabel={(option) => option.name} 
+            getOptionLabel={(option) => option?.name} 
             isOptionEqualToValue={(option, value) => option.id === value.id}
             onChange={(_, value) => {
-              setValue("manufacturerId", value ? value.id : null);
+              field.onChange(value ? value.id : null);
             }}
-            loading={isLoading}
+            // loading={isLoading}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Manufacturer"
+                label="Distribution"
                 variant="outlined"
                 error={!!errors.manufacturerId}
                 helperText={errors.manufacturerId?.message}
@@ -287,7 +326,7 @@
       {errors.manufacturerId && (
         <FormHelperText error>{errors.manufacturerId.message}</FormHelperText>
       )}
-    </FormControl> */}
+    </FormControl> 
               <FormControl fullWidth>
                 <Controller
                   control={control}
@@ -352,7 +391,8 @@
         renderInput={(params) => (
           <TextField
             {...params}
-            label={t("products.fields.category.label")}
+            label={"Category"}
+            placeholder={"Category"}
             margin="normal"
             variant="outlined"
             error={!!errors.categoryId}

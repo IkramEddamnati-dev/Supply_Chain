@@ -58,7 +58,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
             if (userRole === "admin") {
               navigate("/admin-dashboard"); // Redirect to admin dashboard
             } else {
-              navigate("/"); // Redirect to user dashboard
+              window.location.replace("/");
+               // Redirect to user dashboard
             }
           } else {
             setError("Role not found in the token.");
@@ -143,7 +144,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
           <FormControl fullWidth margin="normal" error={!!errors.role} sx={{ backgroundColor: '#fff' }}>
             <InputLabel>Role</InputLabel>
             <Select {...register("role", { required: "Role is required" })} label="Role">
-              <MenuItem value="Raw Material">Raw Material</MenuItem>
+              <MenuItem value="Raw_Material">Raw Material</MenuItem>
               <MenuItem value="Manufacture">Manufacture</MenuItem>
               <MenuItem value="Distribution">Distribution</MenuItem>
               <MenuItem value="Customer">Customer</MenuItem>

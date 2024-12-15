@@ -35,6 +35,7 @@ export const ProductList = ({ children }: PropsWithChildren) => {
       pageSize: 12,
     },
   });
+  const storedRole = localStorage.getItem("userRole");
 
   const { data: categoriesData } = useList<ICategory>({
     resource: "categories",
@@ -73,6 +74,7 @@ export const ProductList = ({ children }: PropsWithChildren) => {
               <BorderAllOutlinedIcon />
             </ToggleButton>
           </ToggleButtonGroup>,
+          storedRole !== "Customer" && (
           <CreateButton
             {...props.createButtonProps}
             key="create"
@@ -92,7 +94,7 @@ export const ProductList = ({ children }: PropsWithChildren) => {
             }}
           >
             {t("products.actions.add")}
-          </CreateButton>,
+          </CreateButton>),
         ]}
       >
         {view === "table" && (

@@ -9,6 +9,8 @@ import { IShipment } from "../../interfaces"; // Interface defined above
 import { Button, Menu, MenuItem, Typography, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import { Tooltip } from "@mui/material";
 import { PlayArrow, CheckCircle } from "@mui/icons-material";
+import Alert from "@mui/material/Alert";
+import Snackbar from "@mui/material/Snackbar";
 export const ShipmentList = ({ children }: PropsWithChildren) => {
   const [shipments, setShipments] = useState<IShipment[]>([]); // State to hold shipments data
   const [loading, setLoading] = useState<boolean>(true); // State to track loading
@@ -20,6 +22,9 @@ export const ShipmentList = ({ children }: PropsWithChildren) => {
   const { pathname } = useLocation();
   const { createUrl } = useNavigation();
   const t = useTranslate();
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+  const [alertOpen, setAlertOpen] = useState(false);
 
   // Fetch data from API using useEffect
   const fetchShipments = async () => {
@@ -55,14 +60,19 @@ export const ShipmentList = ({ children }: PropsWithChildren) => {
       });
       const result = await response.json();
       if (result.status === "success") {
-        alert("Shipment started successfully!");
+        setAlertMessage("Shipment started successfully!");
+        setAlertType("success");
         fetchShipments(); // Refetch the shipments after starting
       } else {
-        alert("Failed to start shipment");
+        setAlertMessage("Failed to start shipment");
+        setAlertType("error");
       }
     } catch (error) {
       console.error("Error starting shipment:", error);
-      alert("Error starting shipment");
+        setAlertMessage("Error starting shipment");
+        setAlertType("error");
+    }finally {
+      setAlertOpen(true); // Open the alert
     }
   }
 };
@@ -75,16 +85,26 @@ const handleCompleteShipment = async () => {
       });
       const result = await response.json();
       if (result.status === "success") {
-        alert("Shipment completed successfully!");
-        fetchShipments(); // Refetch the shipments after completing
+        setAlertMessage("Shipment completed successfully!");
+        setAlertType("success");
+        fetchShipments();
+      
       } else {
-        alert("Failed to complete shipment");
+        setAlertMessage("Failed to complete shipment");
+        setAlertType("error");
       }
     } catch (error) {
-      console.error("Error completing shipment:", error);
-      alert("Error completing shipment");
+      console.error("Error starting shipment:", error);
+        setAlertMessage("Error starting shipment");
+        setAlertType("error");
+    }finally {
+      setAlertOpen(true); // Open the alert
     }
   }
+};
+
+const handleAlertClose = () => {
+  setAlertOpen(false);
 };
 
 
@@ -93,20 +113,20 @@ const handleCompleteShipment = async () => {
     {
       field: "senderName",
       headerName: "Sender",
-      width: 150,
+      width: 120,
       renderCell: ({ row }) => <Typography>{row.senderName}</Typography>,
     },
     {
       field: "receiverName",
       headerName: "Receiver",
-      width: 150,
+      width: 120,
       renderCell: ({ row }) => <Typography>{row.receiverName}</Typography>,
     },
     {
       field: "pickupTime",
-      headerName: "Pickup Time",
-      width: 120,
-      renderCell: ({ row }) => <Typography>{row.pickupTime} hours</Typography>,
+      headerName: "Pickup Date ",
+      width: 150,
+      renderCell: ({ row }) => <Typography>{row.pickupTime}</Typography>,
     },
     {
       field: "price",
@@ -152,9 +172,9 @@ const handleCompleteShipment = async () => {
                       handleStartShipment();
                     }}
                     size="small"
-                    sx={{ minWidth: 40 }} 
+                    sx={{ minWidth: 60 }} 
                   >
-                    <PlayArrow  sx={{ fontSize: 24 }}/>
+                    <PlayArrow  sx={{ fontSize: 25 }}/>
                   </Button>
                 </Tooltip>
               )}
@@ -168,9 +188,9 @@ const handleCompleteShipment = async () => {
                       handleCompleteShipment();
                     }}
                     size="small"
-                    sx={{ minWidth: 40 }}
+                    sx={{ minWidth: 60 }}
                   >
-                    <CheckCircle sx={{ fontSize: 24 }}/>
+                    <CheckCircle sx={{ fontSize: 25 }}/>
                   </Button>
                 </Tooltip>
               )}
@@ -215,6 +235,20 @@ const handleCompleteShipment = async () => {
 
   return (
     <>
+     <div>
+    
+
+      <Snackbar
+        open={alertOpen}
+        autoHideDuration={6000}
+        onClose={handleAlertClose}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={handleAlertClose} severity={alertType} sx={{ width: "100%" }}>
+          {alertMessage}
+        </Alert>
+      </Snackbar>
+    </div>
       <RefineListView>
         <Paper>
           <DataGrid
@@ -238,8 +272,8 @@ const handleCompleteShipment = async () => {
               <Typography variant="body1"><strong>Sender:</strong> {selectedShipment.senderName}</Typography>
               <Typography variant="body1"><strong>Receiver:</strong> {selectedShipment.receiverName}</Typography>
               <Typography variant="body1"><strong>Status:</strong> {selectedShipment.status}</Typography>
-              <Typography variant="body1"><strong>Pickup Time:</strong> {selectedShipment.pickupTime} hours</Typography>
-              <Typography variant="body1"><strong>Delivery Time:</strong> {selectedShipment.deliveryTime || "Not delivered yet"}</Typography>
+              <Typography variant="body1"><strong>Pickup Date:</strong> {selectedShipment.pickupTime} </Typography>
+              <Typography variant="body1"><strong>Delivery Date:</strong> {selectedShipment.deliveryTime || "Not delivered yet"}</Typography>
               <Typography variant="body1"><strong>Distance:</strong> {selectedShipment.distance} km</Typography>
               <Typography variant="body1"><strong>Price:</strong> ${selectedShipment.price}</Typography>
               <Typography variant="body1"><strong>Description:</strong> {selectedShipment.description}</Typography>

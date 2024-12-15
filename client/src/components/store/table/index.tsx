@@ -26,9 +26,9 @@ export const StoreTable = () => {
   const columns = useMemo<GridColDef<IRMS>[]>(() => [
     {
       field: "id",
-      headerName: "ID #",
+      headerName: "ID",
       width: 72,
-      renderCell: ({ row }) => <Typography>#{row.id}</Typography>,
+      renderCell: ({ row }) => <Typography>{row.id}</Typography>,
     },
     {
       field: "avatar",
@@ -66,7 +66,7 @@ export const StoreTable = () => {
         field: "origin",
         headerName: "Origin",
         flex: 2,
-        width: 356,
+        width: 120,
         renderCell: function render({ row }) {
           return <TextFieldComponent value={row.origin?.text} />;
         },
@@ -74,23 +74,8 @@ export const StoreTable = () => {
     {
       field: "description",
       headerName: "Description",
-      minWidth: 132,
-    },
-    {
-      field: "actions",
-      headerName: t("table.actions"),
-      type: "actions",
-      align: "center",
-      headerAlign: "center",
-      renderCell: ({ row }) => (
-        <IconButton
-          sx={{ cursor: "pointer" }}
-          onClick={() => edit("raw_materials", row.id)}
-        >
-          <VisibilityOutlined color="action" />
-        </IconButton>
-      ),
-    },
+      minWidth: 370,
+    }
   ], [t]);
 
   return (

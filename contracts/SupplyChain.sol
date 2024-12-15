@@ -144,7 +144,8 @@ contract SupplyChain {
         string memory _image,
         string memory _originText, // Texte de l'adresse
         int256 _latitude, // Latitude
-        int256 _longitude // Longitude
+        int256 _longitude, // Longitude
+        uint256 _userid
     ) public onlyByOwner {
         rmsCtr++;
         rms[rmsCtr] = RW({
@@ -152,7 +153,7 @@ contract SupplyChain {
             name: _name,
             description: _description,
             price: _price,
-            userId: 0,
+            userId: _userid,
             image: _image,
             origin: Address({
                 text: _originText,
@@ -206,8 +207,6 @@ contract SupplyChain {
         uint256 _price, // Ajouter le prix comme paramètre
         string memory _image
     ) public onlyByOwner {
-        require(users[_manufacturerId].id != 0, "Manufacturer does not exist.");
-        require(users[_distributorId].id != 0, "Distributor does not exist.");
         require(_rwIds.length > 0, "Product must contain raw materials.");
         // Vérification des IDs de matières premières
         for (uint256 i = 0; i < _rwIds.length; i++) {
@@ -251,8 +250,8 @@ contract SupplyChain {
                 _distributorId,
                 block.timestamp,
                 100,
-                _price,
-                " "
+                100,
+                rms[rwId].description
             );
         }
 
@@ -476,5 +475,17 @@ contract SupplyChain {
         }
 
         return allUsers;
+    }
+    function getProductHistory(
+        uint256 _productId
+    ) public view returns (ProductHistory[] memory) {
+        // Vérification que l'ID du produit est valide
+        require(
+            _productId > 0 && _productId <= productCtr,
+            "Produit inexistant"
+        );
+
+        // Retourne l'historique du produit
+        return productHistories[_productId];
     }
 }

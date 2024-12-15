@@ -27,8 +27,7 @@ import StoreOutlinedIcon from "@mui/icons-material/StoreOutlined";
 import Box from "@mui/material/Box";
 import { authProvider } from "./authProvider";
 import { DashboardPage } from "./pages/dashboard";
-import { OrderList, OrderShow } from "./pages/orders";
-import { CustomerShow, CustomerList } from "./pages/customers";
+
 import { ShipmentList } from "./pages/couriers";
 import AuthPage from "./pages/auth";
 import { StoreList, StoreEdit, StoreCreate } from "./pages/stores";
@@ -47,7 +46,6 @@ const App: React.FC = () => {
   const [userRole, setUserRole] = useState<string>("");
   const { t, i18n } = useTranslation();
   const TOKEN_KEY = "refine-auth-token";
-  const role=localStorage.getItem("userRole");
   // Simulate user authentication (replace this with your actual login mechanism)
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY)
@@ -55,6 +53,8 @@ const App: React.FC = () => {
     if (token) {
       // Replace with actual logic to fetch user data and role
       setIsAuthenticated(true);
+      const storedRole = localStorage.getItem("userRole");
+      setUserRole(storedRole || ""); 
     }
   }, []);
 
@@ -65,14 +65,6 @@ const App: React.FC = () => {
       meta: {
         label: "Dashboard",
         icon: <Dashboard />,
-      },
-    },
-    {
-      name: "orders",
-      list: "/orders",
-      show: "/orders/:id",
-      meta: {
-        icon: <ShoppingBagOutlinedIcon />,
       },
     },
     {
@@ -117,23 +109,23 @@ const App: React.FC = () => {
       },
     },
   ];
-
+  console.log(userRole)
   // Filter resources based on the user role
   const filteredResources = resources.filter(resource => {
-    if (role === 'Manufacture') {
-      return ['users', 'raw_materials'].includes(resource.name);
+    if (userRole === 'Manufacture') {
+      return ['products','dashboard','categories'].includes(resource.name);
     }
-    if (role === 'Raw Material') {
-      return !['users', 'raw_materials'].includes(resource.name);
+    if (userRole === 'Raw_Material') {
+      return ['raw_materials','dashboard'].includes(resource.name);
     }
 
     // Example: Regular user cannot access 'users' or 'raw_materials'
-    if (role === 'Distribution') {
-      return ['dashboard', 'shipement'].includes(resource.name);
+    if (userRole === 'Distribution') {
+      return ['dashboard', 'shipement','dashboard'].includes(resource.name);
     }
 
-    if (role === 'Customer') {
-      return ['orders', 'products'].includes(resource.name);
+    if (userRole === 'Customer') {
+      return ['products','dashboard','categories'].includes(resource.name);
     }
 
     // Default fallback: Show resources for 'guest' or other roles
@@ -177,30 +169,7 @@ const App: React.FC = () => {
                 <PrivateRoute isAuthenticated={isAuthenticated} element={<DashboardPage />} />
               }
             />
-             <Route
-              path="/orders"
-              element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<OrderList />} />
-              }
-            />
-            <Route
-              path="/orders/:id"
-              element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<OrderShow />} />
-              }
-            />
-            <Route
-              path="/customers"
-              element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<CustomerList />} />
-              }
-            />
-            <Route
-              path="/customers/:id"
-              element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<CustomerShow />} />
-              }
-            />
+             
             <Route
               path="/products"
               element={
@@ -220,19 +189,19 @@ const App: React.FC = () => {
               }
             />
             <Route
-              path="/stores"
+              path="/raw_materials"
               element={
                 <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreList />} />
               }
             />
             <Route
-              path="/stores/new"
+              path="/raw_materials/new"
               element={
                 <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreCreate />} />
               }
             />
             <Route
-              path="/stores/:id/edit"
+              path="/raw_materials/:id/edit"
               element={
                 <PrivateRoute isAuthenticated={isAuthenticated} element={<StoreEdit />} />
               }

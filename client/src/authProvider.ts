@@ -38,9 +38,12 @@ export const authProvider: AuthProvider = {
   // Logout action to clear the token
   logout: async () => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId')
+    window.location.replace("/");
     return {
       success: true,
-      redirectTo: "/login",
+  
     };
   },
 

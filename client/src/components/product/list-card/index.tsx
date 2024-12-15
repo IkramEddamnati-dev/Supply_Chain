@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useGo, useNavigation, useTranslate } from "@refinedev/core";
 import { NumberField, type UseDataGridReturnType } from "@refinedev/mui";
 import Typography from "@mui/material/Typography";
-import type { ICategory, IProduct } from "../../../interfaces";
 import { useLocation } from "react-router-dom";
 import { ProductStatus } from "../status";
 import Grid from "@mui/material/Grid";
@@ -20,8 +19,30 @@ import TablePagination from "@mui/material/TablePagination";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 type Props = {
-  categories: ICategory[];
-} & UseDataGridReturnType<IProduct>;
+  categories: { id: number; title: string; isActive: boolean }[]; // Updated type for categories
+  tableQueryResult: {
+    data: { data: IProduct[] };
+  };
+  filters: any[];
+  setFilters: (filters: any[]) => void;
+  setCurrent: (page: number) => void;
+  setPageSize: (size: number) => void;
+  dataGridProps: any;
+  editUrl: (resource: string, id: number) => string;
+};
+
+type IProduct = {
+  id: number;
+  name: string;
+  description: string;
+  rwIds: number[];
+  price: number;
+  categoryId: { id: number; title: string; isActive: boolean };
+  image: string;
+  isActive: boolean;
+  ManufacteurId: number;
+  stage: number;
+};
 
 export const ProductListCard = (props: Props) => {
   const go = useGo();
@@ -33,26 +54,31 @@ export const ProductListCard = (props: Props) => {
   const categoryFilters = useMemo(() => {
     const filter = props.filters.find((filter) => {
       if ("field" in filter) {
-        return filter.field === "categoryId.id";
+        return filter.field === "category.id";
       }
-
       return false;
     });
 
     const filterValues = filter?.value?.map((value: string | number) =>
-      Number(value),
+      Number(value)
     );
 
     return {
       operator: filter?.operator || "in",
       value: (filterValues || []) as number[],
     };
-  }, [props.filters]).value;
+  }, [props.filters]);
 
-  const hasCategoryFilter = categoryFilters?.length > 0;
+  const hasCategoryFilter = categoryFilters?.value?.length > 0;
+  const filteredProducts = useMemo(() => {
+    if (!hasCategoryFilter) return products;
+    return products.filter((product) =>
+      categoryFilters.value.includes(product.categoryId.id)
+    );
+  }, [products, hasCategoryFilter, categoryFilters]);
 
   const handleOnTagClick = (categoryId: number) => {
-    const newFilters = categoryFilters;
+    const newFilters = [...categoryFilters.value];
     const hasCurrentFilter = newFilters.includes(categoryId);
     if (hasCurrentFilter) {
       newFilters.splice(newFilters.indexOf(categoryId), 1);
@@ -62,7 +88,7 @@ export const ProductListCard = (props: Props) => {
 
     props.setFilters([
       {
-        field: "categoryId.id",
+        field: "category.id",
         operator: "in",
         value: newFilters,
       },
@@ -83,7 +109,7 @@ export const ProductListCard = (props: Props) => {
           onClick={() => {
             props.setFilters([
               {
-                field: "categoryId.id",
+                field: "category.id",
                 operator: "in",
                 value: [],
               },
@@ -92,16 +118,17 @@ export const ProductListCard = (props: Props) => {
           }}
         />
         {props.categories.map((category) => {
-          
           return (
             <Chip
               key={category.id}
               label={category.title}
               color={
-                categoryFilters?.includes(category.id) ? "primary" : undefined
+                categoryFilters.value?.includes(category.id)
+                  ? "primary"
+                  : undefined
               }
               sx={{
-                color: categoryFilters?.includes(category.id)
+                color: categoryFilters.value?.includes(category.id)
                   ? "white"
                   : undefined,
               }}
@@ -113,25 +140,15 @@ export const ProductListCard = (props: Props) => {
         })}
       </Stack>
       <Divider />
-      <Grid
-        container
-        spacing={3}
-        sx={{
-          marginTop: "24px",
-        }}
-      >
-        {products?.map((product) => {
-            console.log("Rendering product: ", product);
-
-          const category =product.categoryId.id
+      <Grid container spacing={3} sx={{ marginTop: "24px" }}>
+        {filteredProducts?.map((product) => {
+          const category = props.categories.find(
+            (c) => c.id === product.categoryId.id
+          );
 
           return (
             <Grid key={product.id} item sm={3} md={4} lg={3}>
-              <Card
-                sx={{
-                  height: "100%",
-                }}
-              >
+              <Card sx={{ height: "100%" }}>
                 <CardActionArea
                   sx={{
                     display: "flex",
@@ -189,11 +206,7 @@ export const ProductListCard = (props: Props) => {
                   </Box>
 
                   <CardContent>
-                    <Stack
-                      mb="8px"
-                      direction="row"
-                      justifyContent="space-between"
-                    >
+                    <Stack mb="8px" direction="row" justifyContent="space-between">
                       <Typography variant="body1" fontWeight={500}>
                         {product.name}
                       </Typography>
@@ -207,9 +220,7 @@ export const ProductListCard = (props: Props) => {
                         }}
                       />
                     </Stack>
-                    <Typography color="text.secondary">
-                      {product.description}
-                    </Typography>
+                    <Typography color="text.secondary">{product.description}</Typography>
                   </CardContent>
                   <CardActions
                     sx={{
@@ -226,7 +237,7 @@ export const ProductListCard = (props: Props) => {
                       sx={{
                         backgroundColor: "transparent",
                       }}
-                      label={product?.categoryId?.title}
+                      label={category?.title}
                     />
                     <ProductStatus size="small" value={product.isActive} />
                   </CardActions>
@@ -236,11 +247,7 @@ export const ProductListCard = (props: Props) => {
           );
         })}
       </Grid>
-      <Divider
-        sx={{
-          marginTop: "24px",
-        }}
-      />
+      <Divider sx={{ marginTop: "24px" }} />
       <TablePagination
         component="div"
         count={props.dataGridProps.rowCount}
