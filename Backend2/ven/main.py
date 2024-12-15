@@ -52,7 +52,7 @@ async def get_users_by_role(role: str):
         users_data = contract.functions.getUsersByRole(role).call()
 
         # Si des utilisateurs existent, les retourner
-        users_list = [User2(name=user[1], email=user[2]) for user in users_data]
+        users_list = [User2(name=user[1], email=user[2], location=user[4]) for user in users_data]
         return users_list
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -65,7 +65,8 @@ async def add_user(user: UserCreate):
         user.name,
         user.email,
         user.password,
-        user.role
+        user.role,
+        user.location
     ).build_transaction({
         'chainId': 1337,  # Ganache utilise souvent le chainId 1337
         'gas': 2000000,
@@ -179,9 +180,11 @@ def add_product(request: AddProductRequest):
             request.name,
             request.description,
             request.rwIds,
+            int(request.price),
+            
             request.manufacturerId,
             request.categoryId,
-            int(request.price),
+            request.productAddress,
             request.image
         ).transact({'from': w3.eth.accounts[0]})  # Adresse à remplacer si nécessaire
 
@@ -214,6 +217,22 @@ def get_category(category_id: int):
             "id": category[0],
             "title": category[1],
             "isActive": category[2]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/products/{category_id}")
+def get_category(category_id: int):
+    try:
+        category = contract.functions.getProductById(category_id).call()
+        if category[0] == 0:
+            raise HTTPException(status_code=404, detail="Category not found")
+        return {
+            "id": category[0],
+            "name": category[1],
+            "rwIds": category[3],
+            "ManufacteurId":category[6],
+            "produitOriginID":category[11],
+            "productAddress":category[8]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -286,8 +305,12 @@ async def get_all_products():
                     "isActive": product[5][2],  # Statut d'activation de la catégorie
                 },
 
-                "image": product[10],  # URL de l'image
-                "isActive": product[11],  # Statut d'activation
+                "image": product[10],  
+                "isActive": product[9],
+                "ManufacteurId": product[6],
+                "productAddress":product[8],
+                "produitOriginID":product[11], 
+                "stage":product[12]
             }
             for product in products_data
         ]
@@ -348,7 +371,110 @@ async def get_all_users():
     try:
         users_data = contract.functions.getAllUsers().call()
 
-        users_list = [User2(name=user[1], email=user[2]) for user in users_data]
+        users_list = [User2(name=user[1], email=user[2],role=user[4],location=user[5]) for user in users_data]
         return users_list
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class UpdateStageProductRequest(BaseModel):
+    product_id: int
+    stage: int  # Par exemple : "manufacturing", "shipping", "delivered"
+
+@app.put("/update_stage_product/{product_id}")
+async def update_stage_product(product_id: int, request: UpdateStageProductRequest):
+    try:
+        # Appel à la fonction de mise à jour de l'état du produit sur le contrat
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.updateProductStage(
+            product_id,
+            request.stage
+        ).build_transaction({
+            'chainId': 1337,  # ID de la chaîne Ganache
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
+
+        # Signature de la transaction
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+        
+        # Attente de la confirmation de la transaction
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# Route pour obtenir l'historique complet d'un produit par son ID
+@app.get("/get_product_history/{product_id}")
+async def get_product_history(product_id: int):
+    try:
+        # Vérification de la validité du produit
+        if product_id <= 0:
+            raise HTTPException(status_code=400, detail="Invalid product ID")
+
+        # Appel à la fonction Solidity pour récupérer l'historique du produit
+        history = contract.functions.getProductHistory(product_id).call()
+
+        # Retourner l'historique sous forme d'une réponse JSON
+        return {"history": history}
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+
+@app.post("/duplicate_product")
+async def duplicate_product(request: DuplicateProductRequest):
+    try:
+        if any(rw_id <= 0 for rw_id in request.rwIds):
+            raise HTTPException(status_code=400, detail="Invalid raw material ID(s)")
+
+        # Extraire les paramètres de la requête
+        produitOriginID = request.produitOriginID
+        newName = request.newName
+        newDescription=request.newDescription
+        newPrice =int( request.newPrice  ) 
+        rwIds =request.rwIds
+        newImage = request.newImage
+        newAddress=request.newAddress
+        manufacturerIdNew=request.manufacturerIdNew
+
+        # Appel à la fonction Solidity "duplicateProduct"
+        nonce = w3.eth.get_transaction_count(owner_address)
+        tx = contract.functions.duplicateProduct(
+            produitOriginID,
+            newName,
+            newDescription,
+            rwIds,
+            newPrice,
+            manufacturerIdNew,
+            newAddress,
+            newImage,
+            
+            
+        ).build_transaction({
+            'chainId': 1337,  # ID du réseau, ici pour Ganache
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
+            'nonce': nonce,
+        })
+
+        # Signer la transaction
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+        # Attendre que la transaction soit minée
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Vérification du statut de la transaction
+        if receipt.status == 1:
+            return {"status": "success", "tx_hash": tx_hash.hex()}
+        else:
+            raise HTTPException(status_code=400, detail="Transaction failed")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

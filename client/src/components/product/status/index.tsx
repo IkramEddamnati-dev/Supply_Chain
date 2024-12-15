@@ -3,7 +3,7 @@ import { useTranslate } from "@refinedev/core";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import { useTheme } from "@mui/material/styles";
-import { green } from "@mui/material/colors";
+import { green, red } from "@mui/material/colors";
 import type { IProduct } from "../../../interfaces";
 
 type Props = {
@@ -16,11 +16,10 @@ export const ProductStatus = (props: Props) => {
   const { palette } = useTheme();
   const isDarkMode = palette.mode === "dark";
 
-  const color = props.value
-    ? isDarkMode
-      ? green[200]
-      : green[800]
-    : "default";
+  // Set color to green for available and red for unavailable
+  const color = props.value ? green[500] : red[500]; // Green if active, red if inactive
+
+  // Set icon based on isActive value
   const icon: ChipProps["icon"] = props.value ? (
     <CheckCircleIcon
       sx={{
@@ -33,7 +32,7 @@ export const ProductStatus = (props: Props) => {
 
   return (
     <Chip
-      label={t(`products.fields.isActive.${props.value}`)}
+      label={props.value ? "Available" : "Unavailable"}  // Label based on isActive
       icon={icon}
       variant="outlined"
       size={props?.size || "small"}

@@ -35,7 +35,7 @@ export const OrderProducts = ({ order }: Props) => {
                 width: 32,
                 height: 32,
               }}
-              src={row.images[0]?.thumbnailUrl || row.images[0]?.url}
+              src={row.image}
               alt={row.name}
             />
           );

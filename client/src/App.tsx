@@ -37,6 +37,7 @@ import { CategoryList } from "./pages/categories";
 import { ColorModeContextProvider } from "./contexts";
 import { Header, Title } from "./components";
 import { useAutoLoginForDemo } from "./hooks";
+import { ProductShow } from "./pages/products/show";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -186,6 +187,8 @@ const App: React.FC = () => {
                   >
                     <Route path=":id/edit" element={<ProductEdit />} />
                     <Route path="new" element={<ProductCreate />} />
+                    <Route path=":id" element={< ProductShow/>} />
+
                   </Route>
 
                   <Route path="/raw_materials">

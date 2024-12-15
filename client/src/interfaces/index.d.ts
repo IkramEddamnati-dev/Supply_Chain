@@ -1,3 +1,5 @@
+import { String } from "lodash";
+
 export interface IOrderChart {
   count: number;
   status:
@@ -26,6 +28,7 @@ export interface IOrderStatus {
 
 export interface IUser {
   id: number;
+  name:string;
   firstName: string;
   lastName: string;
   fullName: string;
@@ -34,7 +37,7 @@ export interface IUser {
   createdAt: string;
   isActive: boolean;
   avatar: IFile[];
-  addresses: IAddress[];
+  location: string;
 }
 
 export interface IIdentity {
@@ -94,11 +97,13 @@ export interface IProduct {
   isActive: boolean;
   description: string;
   image: string;
-  rwIds:number[];
-  manufacturerId:number;
+  rwIds: number[];
+  ManufacteurId: number;
   price: number;
-  categoryId: ICategory;
-  
+  categoryId: ICategory;  // This is now correctly referencing the ICategory type
+  produitOriginID: number;
+  productAddress: string;
+  stage: number;
 }
 
 export interface ICategory {

@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 import IconButton from "@mui/material/IconButton";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ProductStatus } from "../status";
+import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 
 type Props = {
   categories: ICategory[];
@@ -17,8 +18,9 @@ type Props = {
 export const ProductListTable = (props: Props) => {
   const go = useGo();
   const { pathname } = useLocation();
-  const { editUrl } = useNavigation();
   const t = useTranslate();
+  const { show } = useNavigation();
+
 
   const columns = useMemo<GridColDef<IProduct>[]>(
     () => [
@@ -107,35 +109,20 @@ export const ProductListTable = (props: Props) => {
       {
         field: "actions",
         headerName: t("table.actions"),
-        width: 80,
+        type: "actions",
         align: "center",
         headerAlign: "center",
-        renderCell: function render({ row }) {
-          return (
-            <IconButton
-              sx={{
-                color: "text.secondary",
-              }}
-              onClick={() => {
-                return go({
-                  to: `${editUrl("products", row.id)}`,
-                  query: {
-                    to: pathname,
-                  },
-                  options: {
-                    keepQuery: true,
-                  },
-                  type: "replace",
-                });
-              }}
-            >
-              <EditOutlinedIcon />
-            </IconButton>
-          );
-        },
+        renderCell: ({ row }) => (
+          <IconButton
+            sx={{ cursor: "pointer" }}
+            onClick={() => show("products", row.id)}
+          >
+            <VisibilityOutlined color="action" />
+          </IconButton>
+        ),
       },
     ],
-    [t, props.categories, editUrl, go, pathname],
+    [t, props.categories, go, pathname],
   );
 
   return (

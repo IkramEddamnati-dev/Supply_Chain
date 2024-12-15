@@ -8,6 +8,7 @@ import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import { GoogleMap, AdvancedMarker } from "../../map";
 import type { IRMS } from "../../../interfaces";
+import PriceCheckIcon from '@mui/icons-material/PriceCheck';
 
 export const AllStoresMap = () => {
   const [rawMaterials, setRawMaterials] = useState<IRMS[]>([]); // État pour stocker les données
@@ -20,7 +21,7 @@ export const AllStoresMap = () => {
       .then((response) => response.json())
       .then((data) => {
         console.log("Fetched data:", data);
-        setRawMaterials(data.raw_materials);
+        setRawMaterials(data);
       })
       .catch((error) => console.error("Error fetching raw materials:", error));
   }, []);
@@ -104,7 +105,7 @@ export const AllStoresMap = () => {
             </Stack>
             <Divider />
             <Stack direction="row" alignItems="center" gap="8px">
-              <LocalPhoneOutlinedIcon />
+              <PriceCheckIcon />
               <Typography py="8px">{store.price}</Typography>
             </Stack>
           </Box>

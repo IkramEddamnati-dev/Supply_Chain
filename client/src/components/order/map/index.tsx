@@ -1,41 +1,211 @@
+import { FC, useEffect, useState } from "react";
 import { GoogleMap, MapMarker } from "../../map";
-import type { IOrder } from "../../../interfaces";
+import MapWrapper, { Polyline } from "../../map/map";
 
-type Props = {
-  order?: IOrder;
+type RawMaterial = {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  origin: {
+    text: string;
+    coordinate: [number, number];
+  };
 };
 
-export const OrderDeliveryMap = ({ order }: Props) => {
+type Product = {
+  id: number;
+  rwIds: number[];
+  ManufacteurId: number;
+  produitOriginID: number | null;
+  productAddress: string;
+};
+
+type Props = {
+  product: Product;
+};
+
+export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
+  const [productCoordinates, setProductCoordinates] = useState<[number, number] | null>(null);
+  const [originProduct, setOriginProduct] = useState<Product | null>(null);
+  const [originRawMaterials, setOriginRawMaterials] = useState<RawMaterial[]>([]);
+  const [originCoordinates, setOriginCoordinates] = useState<[number, number] | null>(null);
+
+  const API_KEY = "79e9428274814401aace6fdfdbffb8ae";
+
+  // Helper to geocode addresses
+  const geocodeAddress = async (address: string): Promise<[number, number] | null> => {
+    try {
+      const response = await fetch(
+        `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=${API_KEY}`
+      );
+      const geocodeData = await response.json();
+      if (geocodeData.results.length > 0) {
+        const { lat, lng } = geocodeData.results[0].geometry;
+        return [lat, lng];
+      }
+    } catch (error) {
+      console.error("Erreur lors du géocodage:", error);
+    }
+    return null;
+  };
+
+  // Fetch product raw materials
+  const fetchRawMaterials = async (rwIds: number[]) => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/raw_materials");
+      const allRawMaterials: RawMaterial[] = await response.json();
+      return allRawMaterials.filter((rm) => rwIds.includes(rm.id));
+    } catch (error) {
+      console.error("Erreur lors de la récupération des matières premières:", error);
+      return [];
+    }
+  };
+
+  // Fetch the origin product
+  const fetchOriginProduct = async (originID: number) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/products/${originID}`);
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération du produit d'origine:", error);
+      return null;
+    }
+  };
+
+  // Load current product raw materials and coordinates
+  useEffect(() => {
+    const loadProductData = async () => {
+      const [materials, coordinates] = await Promise.all([
+        fetchRawMaterials(product.rwIds),
+        geocodeAddress(product.productAddress),
+      ]);
+      console.log(product);  // Vérifiez si le produit contient bien tous les attributs
+      setRawMaterials(materials);
+      setProductCoordinates(coordinates);
+    };
+    loadProductData();
+  }, [product]);
+  
+  // Load origin product and its data
+  useEffect(() => {
+    const loadOriginProductData = async () => {
+      if (product.produitOriginID) {
+        const origin = await fetchOriginProduct(product.produitOriginID);
+        if (origin) {
+          setOriginProduct(origin);
+
+          const [materials, coordinates] = await Promise.all([
+            fetchRawMaterials(origin.rwIds),
+            geocodeAddress(origin.productAddress),
+          ]);
+          setOriginRawMaterials(materials);
+          setOriginCoordinates(coordinates);
+        }
+      }
+    };
+    loadOriginProductData();
+  }, [product.produitOriginID]);
+
   return (
-    <GoogleMap
+    <MapWrapper
       mapProps={{
-        center: {
-          lat: 40.73061,
-          lng: -73.935242,
-        },
+        center: { lat: 33.5731, lng: -7.5898 },
         zoom: 9,
       }}
     >
-      <MapMarker
-        key={`user-marker-${order?.user.id}`}
-        icon={{
-          url: "/images/marker-customer.svg",
-        }}
-        position={{
-          lat: Number(order?.adress.coordinate[0]),
-          lng: Number(order?.adress.coordinate[1]),
-        }}
-      />
-      <MapMarker
-        key={`user-marker-${order?.user.id}`}
-        icon={{
-          url: "/images/marker-courier.svg",
-        }}
-        position={{
-          lat: Number(order?.store.address.coordinate[0]),
-          lng: Number(order?.store.address.coordinate[1]),
-        }}
-      />
-    </GoogleMap>
+      {/* Raw materials of the current product */}
+      {rawMaterials.map((rm) => (
+        <MapMarker
+          key={`raw-material-${rm.id}`}
+          position={{
+            lat: rm.origin.coordinate[0],
+            lng: rm.origin.coordinate[1],
+          }}
+        />
+      ))}
+
+      {/* Current product coordinates */}
+      {productCoordinates && (
+        <MapMarker
+          position={{
+            lat: productCoordinates[0],
+            lng: productCoordinates[1],
+          }}
+        />
+      )}
+
+      {/* Lines between raw materials and the current product */}
+      {productCoordinates &&
+        rawMaterials.map((rm) => (
+          <Polyline
+            key={`polyline-${rm.id}`}
+            path={[
+              { lat: rm.origin.coordinate[0], lng: rm.origin.coordinate[1] },
+              { lat: productCoordinates[0], lng: productCoordinates[1] },
+            ]}
+            options={{
+              strokeColor: "#FF0000",
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+            }}
+          />
+        ))}
+
+      {/* Origin product coordinates */}
+      {originCoordinates && (
+        <MapMarker
+          position={{
+            lat: originCoordinates[0],
+            lng: originCoordinates[1],
+          }}
+        />
+      )}
+
+      {/* Lines between the origin product and the current product */}
+      {productCoordinates && originCoordinates && (
+        <Polyline
+          path={[
+            { lat: originCoordinates[0], lng: originCoordinates[1] },
+            { lat: productCoordinates[0], lng: productCoordinates[1] },
+          ]}
+          options={{
+            strokeColor: "#00FF00",
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+          }}
+        />
+      )}
+
+      {/* Raw materials of the origin product */}
+      {originRawMaterials.map((rm) => (
+        <MapMarker
+          key={`origin-raw-material-${rm.id}`}
+          position={{
+            lat: rm.origin.coordinate[0],
+            lng: rm.origin.coordinate[1],
+          }}
+        />
+      ))}
+
+      {/* Lines between raw materials of the origin product and the origin product */}
+      {originCoordinates &&
+        originRawMaterials.map((rm) => (
+          <Polyline
+            key={`origin-polyline-${rm.id}`}
+            path={[
+              { lat: rm.origin.coordinate[0], lng: rm.origin.coordinate[1] },
+              { lat: originCoordinates[0], lng: originCoordinates[1] },
+            ]}
+            options={{
+              strokeColor: "#0000FF",
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+            }}
+          />
+        ))}
+    </MapWrapper>
   );
 };

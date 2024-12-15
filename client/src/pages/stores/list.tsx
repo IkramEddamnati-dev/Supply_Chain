@@ -53,7 +53,7 @@ export const StoreList = () => {
           size="medium"
           sx={{ height: "40px" }}
         >
-          {t("stores.addNewStore")}
+          addNewRW
         </CreateButton>,
       ]}
     >

@@ -23,7 +23,7 @@
   import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
   import FormLabel from "@mui/material/FormLabel";
   import { Drawer, DrawerHeader, ProductImageUpload } from "../../../components";
-  import { useImageUpload } from "../../../utils";
+  // import { useImageUpload } from "../../../utils";
   import type { ICategory, IFile, IProduct, Nullable } from "../../../interfaces";
 
   type Props = {
@@ -69,7 +69,7 @@
         description: "",
         rwIds:[],
         price: 0,
-        manufacturerId:0,
+        ManufacteurId:1,
         categoryId: null,
         isActive: true,
         image: "",
@@ -216,7 +216,36 @@
                 )}
               </FormControl>
               <FormControl fullWidth>
-    <FormLabel>{t("products.fields.rwIds")}</FormLabel>
+                <Controller
+                  control={control}
+                  name="productAddress"
+                  defaultValue=""
+                  rules={{
+                    required: t("errors.required.field", {
+                      field: "productAddress",
+                    }),
+                  }}
+                  render={({ field }) => {
+                    return (
+                      <TextField
+                        {...field}
+                        variant="outlined"
+                        id="productAddress"
+                        label="productAddress"
+                        placeholder="productAddress"
+                      />
+                    );
+                  }}
+                />
+                {errors.productAddress && (
+                  <FormHelperText error>
+                    {errors.productAddress.message}
+                  </FormHelperText>
+                )}
+              </FormControl>
+              
+              <FormControl fullWidth>
+    <FormLabel>rwIds</FormLabel>
     <Controller
       control={control}
       name="rwIds"
@@ -241,8 +270,8 @@
           renderInput={(params) => (
             <TextField
               {...params}
-              label={t("products.fields.rwIds")}
-              placeholder={t("products.fields.rwIds")}
+              label="rwIds"
+              placeholder=""
               error={!!errors.rwIds}
               helperText={errors.rwIds?.message}
             />
@@ -352,7 +381,7 @@
         renderInput={(params) => (
           <TextField
             {...params}
-            label={t("products.fields.category.label")}
+            label="category"
             margin="normal"
             variant="outlined"
             error={!!errors.categoryId}

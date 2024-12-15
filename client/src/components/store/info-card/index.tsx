@@ -15,6 +15,7 @@ import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import type { IRMS } from "../../../interfaces";
 import { StoreStatus } from "../status";
+import PriceCheckIcon from '@mui/icons-material/PriceCheck';
 
 type Props = {
   store?: IRMS;
@@ -44,7 +45,7 @@ export const StoreInfoCard = (props: Props) => {
       />
       <Divider />
       <Info
-        icon={<PhoneOutlinedIcon />}
+        icon={<PriceCheckIcon />}
         label={t("stores.fields.gsm")}
         value={price}
       />

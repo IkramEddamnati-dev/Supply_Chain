@@ -9,10 +9,12 @@ class UserCreate(BaseModel):
     email: str
     password: str
     role: str
+    location:str
 class User2(BaseModel):
     name: str
     email: str
     role: str
+    location:str
 
 class RawMaterialCreate(BaseModel):
     name: str
@@ -33,7 +35,8 @@ class AddProductRequest(BaseModel):
     manufacturerId: int
     categoryId: int
     image: str
-    price: int  
+    price: float  
+    productAddress:str
 
 class EditProductRequest(BaseModel):
     name: str
@@ -44,3 +47,12 @@ class EditProductRequest(BaseModel):
 
 class EditCategoryRequest(BaseModel):
     title: str
+class DuplicateProductRequest(BaseModel):
+    produitOriginID: int
+    newName: str
+    newDescription:str
+    newAddress:str
+    manufacturerIdNew:int
+    newPrice: float
+    newImage: str
+    rwIds: list[int]

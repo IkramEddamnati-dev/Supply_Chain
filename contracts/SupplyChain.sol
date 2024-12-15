@@ -7,8 +7,8 @@ contract SupplyChain {
     address public Owner;
 
     struct Address {
-        string text;                // Adresse sous forme de texte
-        int256[2] coordinate;      // Tableau de coordonnées [latitude, longitude]
+        string text;                
+        int256[2] coordinate;     
     }
 
     struct Category {
@@ -43,14 +43,14 @@ contract SupplyChain {
         string name;
         string description;
         uint256[] rwIds;
-        uint256 price; // Ajout du prix
+        uint256 price; 
         Category category;
         uint256 manufacturerId;
         uint256 distributorId;
-        uint256 retailerId;
+        string productAddress;  // Renommé pour éviter conflit avec le type address
         bool isActive;
         string image;
-        uint256 currentHandlerId;
+        uint256 produitOriginID;
         STAGE stage;
     }
 
@@ -61,15 +61,16 @@ contract SupplyChain {
         uint256 price;
         uint256 userId;
         string image;
-        Address origin; // Utilisation de la structure Address
+        Address origin; 
     }
 
     struct User {
         uint256 id;
         string name;
         string email;
-        bytes32 passwordHash; // Stockage sécurisé avec un hash
-        string role; // Role de l'utilisateur comme une chaîne de caractères
+        bytes32 passwordHash; 
+        string role; 
+        string location;
     }
 
     struct ProductHistory {
@@ -119,6 +120,95 @@ contract SupplyChain {
         emit RawMaterialAdded(rmsCtr, _name);
     }
 
+    function addProduct(
+    string memory _name,
+    string memory _description,
+    uint256[] memory _rwIds,
+    uint256 _price,
+    uint256 _manufacturerId,
+    uint256 _categoryId,
+    string memory _productAddress,
+    string memory _image
+) public onlyByOwner {
+    // Vérification des IDs de matières premières
+    for (uint256 i = 0; i < _rwIds.length; i++) {
+        require(_rwIds[i] > 0 && _rwIds[i] <= rmsCtr, "Invalid raw material ID");
+    }
+
+    // Vérification de la validité de la catégorie
+    require(_categoryId > 0 && _categoryId <= categoryCtr, "Invalid category ID");
+
+    // Incrémentation du compteur de produits
+    productCtr++;
+
+    // Création du produit
+    productStock[productCtr] = Product({
+        id: productCtr,
+        name: _name,
+        description: _description,
+        rwIds: _rwIds,
+        price: _price,
+        category: categories[_categoryId],
+        manufacturerId: _manufacturerId,
+        distributorId: 0,
+        productAddress: _productAddress,
+        produitOriginID: 0,
+        stage: STAGE.Manufacture,
+        isActive: true,
+        image: _image
+    });
+
+    // Émettre l'événement
+    emit ProductAdded(productCtr, _name);
+}
+function duplicateProduct(
+    uint256 _originalProductId,
+    string memory _name,
+    string memory _description,
+    uint256[] memory _rwIds,
+    uint256 _price,
+    uint256 _manufacturerId,
+    string memory _productAddress,
+    string memory _image
+) public onlyByOwner {
+    // Vérifier si le produit original existe
+    require(
+        _originalProductId > 0 && _originalProductId <= productCtr,
+        "Produit original inexistant"
+    );
+
+    // Récupérer le produit original
+    Product memory originalProduct = productStock[_originalProductId];
+
+    // Vérification des IDs de matières premières
+    for (uint256 i = 0; i < _rwIds.length; i++) {
+        require(_rwIds[i] > 0 && _rwIds[i] <= rmsCtr, "Invalid raw material ID");
+    }
+
+    // Incrémenter le compteur de produits
+    productCtr++;
+
+    // Créer un nouveau produit basé sur le produit original
+    productStock[productCtr] = Product({
+        id: productCtr,
+        name: _name, 
+        description: _description,
+        rwIds: _rwIds,
+        price: _price,
+        category: originalProduct.category,
+        manufacturerId: _manufacturerId,
+        distributorId: 0,
+        productAddress: _productAddress,
+        produitOriginID: originalProduct.id,
+        stage: STAGE.Manufacture,
+        isActive: true,
+        image: _image
+    });
+
+    // Émettre un événement pour signaler la création du nouveau produit
+    emit ProductAdded(productCtr, _name);
+}
+
     // Ajouter une catégorie
     function addCategory(string memory _title) public onlyByOwner {
         categoryCtr++;
@@ -135,7 +225,8 @@ contract SupplyChain {
         string memory _name,
         string memory _email,
         string memory _password,
-        string memory _role
+        string memory _role,
+        string memory _location
     ) public {
         require(bytes(_name).length > 0, "Name cannot be empty");
         require(bytes(_email).length > 0, "Email cannot be empty");
@@ -146,50 +237,9 @@ contract SupplyChain {
             name: _name,
             email: _email,
             passwordHash: keccak256(abi.encodePacked(_password)),
-            role: _role
+            role: _role,
+            location:_location
         });
-    }
-
-    // Ajouter un produit
-    function addProduct(
-        string memory _name,
-        string memory _description,
-        uint256[] memory _rwIds,
-        uint256 _manufacturerId,
-        uint256 _categoryId,
-        uint256 _price,  // Ajouter le prix comme paramètre
-        string memory _image
-    ) public onlyByOwner {
-        // Vérification des IDs de matières premières
-        for (uint256 i = 0; i < _rwIds.length; i++) {
-            require(_rwIds[i] > 0 && _rwIds[i] <= rmsCtr, "Invalid raw material ID");
-        }
-
-        // Vérification de la validité de la catégorie
-        require(_categoryId > 0 && _categoryId <= categoryCtr, "Invalid category ID");
-
-        // Incrémentation du compteur de produits
-        productCtr++;
-
-        // Création du produit
-        productStock[productCtr] = Product({
-            id: productCtr,
-            name: _name,
-            description: _description,
-            rwIds: _rwIds,
-            price: _price,  // Assignation du prix
-            category: categories[_categoryId],
-            manufacturerId: _manufacturerId,
-            distributorId: 0,
-            retailerId: 0,
-            currentHandlerId: _manufacturerId,
-            stage: STAGE.Manufacture,  // Le stade initial est la fabrication
-            isActive: true,
-            image: _image
-        });
-
-        // Émettre l'événement
-        emit ProductAdded(productCtr, _name);
     }
 
     // Obtenir un produit par ID
@@ -264,7 +314,7 @@ function getAllCategories() public view returns (Category[] memory) {
         productHistories[_productId].push(
             ProductHistory({
                 timestamp: block.timestamp,
-                handlerId: productStock[_productId].currentHandlerId,
+                handlerId: productStock[_productId].manufacturerId,
                 stage: _newStage
             })
         );
@@ -293,5 +343,14 @@ function getAllUsers() public view returns (User[] memory) {
 
     return allUsers;
 }
+// Obtenir l'historique complet d'un produit par son ID
+function getProductHistory(uint256 _productId) public view returns (ProductHistory[] memory) {
+    // Vérification que l'ID du produit est valide
+    require(_productId > 0 && _productId <= productCtr, "Produit inexistant");
+
+    // Retourne l'historique du produit
+    return productHistories[_productId];
+}
+
 
 }

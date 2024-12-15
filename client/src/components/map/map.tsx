@@ -1,15 +1,4 @@
-import {
-  Children,
-  cloneElement,
-  type Dispatch,
-  type FC,
-  isValidElement,
-  type PropsWithChildren,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useState, useRef, Children, cloneElement, isValidElement, type Dispatch, type SetStateAction, type FC, type PropsWithChildren } from "react";
 import { Wrapper } from "@googlemaps/react-wrapper";
 
 interface MapProps extends Exclude<google.maps.MapOptions, "center"> {
@@ -32,10 +21,7 @@ const MapComponent: FC<PropsWithChildren<MapProps>> = ({
 
   useEffect(() => {
     if (map && center) {
-      map?.setCenter({
-        lat: center.lat,
-        lng: center.lng,
-      });
+      map.setCenter(center);
     }
   }, [center, map]);
 
@@ -51,22 +37,18 @@ const MapComponent: FC<PropsWithChildren<MapProps>> = ({
 
   useEffect(() => {
     if (ref.current && !map) {
-      const mapContructor = new window.google.maps.Map(ref.current, {
-        mapId,
-      });
-      setMap(mapContructor);
-      setMapFromProps?.(mapContructor);
+      const mapInstance = new window.google.maps.Map(ref.current, { mapId });
+      setMap(mapInstance);
+      setMapFromProps?.(mapInstance);
     }
   }, [map, mapId, setMapFromProps]);
 
   return (
     <>
       <div ref={ref} style={{ flexGrow: "1", height: "100%" }} />
-      {Children.map(children, (child) => {
-        if (isValidElement(child)) {
-          return cloneElement<any>(child, { map });
-        }
-      })}
+      {Children.map(children, (child) =>
+        isValidElement(child) ? cloneElement<any>(child, { map }) : null
+      )}
     </>
   );
 };
@@ -81,8 +63,6 @@ const MapWrapper: FC<PropsWithChildren<MapWrapperProps>> = ({
 }) => {
   return (
     <Wrapper
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //  @ts-ignore
       version="beta"
       libraries={["marker"]}
       apiKey={import.meta.env.VITE_APP_MAP_ID}
@@ -93,3 +73,28 @@ const MapWrapper: FC<PropsWithChildren<MapWrapperProps>> = ({
 };
 
 export default MapWrapper;
+
+// ------------ Ajouter un composant Polyline -----------------
+interface PolylineProps {
+  map?: google.maps.Map;
+  path: google.maps.LatLngLiteral[];
+  options?: google.maps.PolylineOptions;
+}
+
+export const Polyline: FC<PolylineProps> = ({ map, path, options }) => {
+  useEffect(() => {
+    if (!map) return;
+
+    const polyline = new google.maps.Polyline({
+      map,
+      path,
+      ...options,
+    });
+
+    return () => {
+      polyline.setMap(null); // Supprimer la polyligne de la carte lorsqu'elle est démontée.
+    };
+  }, [map, path, options]);
+
+  return null;
+};
