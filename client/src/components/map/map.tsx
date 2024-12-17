@@ -64,7 +64,7 @@ const MapWrapper: FC<PropsWithChildren<MapWrapperProps>> = ({
   return (
     <Wrapper
       version="beta"
-      libraries={["marker"]}
+      libraries={["geometry", "marker"]}  // Utilisez la même configuration
       apiKey={import.meta.env.VITE_APP_MAP_ID}
     >
       <MapComponent {...mapProps}>{children}</MapComponent>
@@ -72,9 +72,11 @@ const MapWrapper: FC<PropsWithChildren<MapWrapperProps>> = ({
   );
 };
 
+
 export default MapWrapper;
 
 // ------------ Ajouter un composant Polyline -----------------
+
 interface PolylineProps {
   map?: google.maps.Map;
   path: google.maps.LatLngLiteral[];
@@ -85,14 +87,35 @@ export const Polyline: FC<PolylineProps> = ({ map, path, options }) => {
   useEffect(() => {
     if (!map) return;
 
+    // Crée la polyligne
     const polyline = new google.maps.Polyline({
       map,
       path,
       ...options,
     });
 
+    // Ajoute une flèche à l'extrémité de la polyligne
+    const arrowSymbol = {
+      path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+      scale: 3, // Taille de la flèche
+      rotation: google.maps.geometry.spherical.computeHeading(
+        path[path.length - 2], // Point précédent
+        path[path.length - 1], // Dernier point
+      ), // Calcul de la direction de la flèche
+      anchor: new google.maps.Point(0, 0), // Position de la flèche
+      strokeColor: "#FF0000", // Couleur de la flèche
+    };
+
+    // Crée un marker à la fin de la polyligne avec la flèche
+    const arrowMarker = new google.maps.Marker({
+      position: path[path.length - 1], // Dernier point de la polyligne
+      map,
+      icon: arrowSymbol,
+    });
+
     return () => {
       polyline.setMap(null); // Supprimer la polyligne de la carte lorsqu'elle est démontée.
+      arrowMarker.setMap(null); // Supprimer le marqueur de flèche lorsqu'il est démonté.
     };
   }, [map, path, options]);
 

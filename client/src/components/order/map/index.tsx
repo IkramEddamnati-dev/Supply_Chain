@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from "react";
-import { GoogleMap, MapMarker } from "../../map";
+import { MapMarker } from "../../map";
 import MapWrapper, { Polyline } from "../../map/map";
 
 type RawMaterial = {
@@ -84,7 +84,7 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
     };
     loadProductData();
   }, [product]);
-
+  
   useEffect(() => {
     const loadOriginProductData = async () => {
       if (product.produitOriginID) {
@@ -102,13 +102,6 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
     };
     loadOriginProductData();
   }, [product.produitOriginID]);
-
-  // Définir le symbole de flèche
-  const arrowSymbol = {
-    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,  // Symbole de flèche
-    scale: 3,  // Taille de la flèche
-    strokeColor: '#FF0000',  // Couleur de la flèche
-  };
 
   return (
     <MapWrapper
@@ -136,7 +129,7 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
             lat: productCoordinates[0],
             lng: productCoordinates[1],
           }}
-          label={product?.name}  // Afficher le nom du produit
+          label={product.name}  // Afficher le nom du produit
         />
       )}
 
@@ -153,12 +146,6 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
               strokeColor: "#FF0000",
               strokeOpacity: 0.8,
               strokeWeight: 2,
-              icons: [
-                {
-                  icon: arrowSymbol,
-                  offset: '100%',  // La flèche sera affichée à la fin de la ligne
-                },
-              ],
             }}
           />
         ))}
@@ -185,12 +172,6 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
             strokeColor: "#00FF00",
             strokeOpacity: 0.8,
             strokeWeight: 2,
-            icons: [
-              {
-                icon: arrowSymbol,
-                offset: '100%',  // La flèche sera affichée à la fin de la ligne
-              },
-            ],
           }}
         />
       )}
@@ -220,12 +201,6 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
               strokeColor: "#0000FF",
               strokeOpacity: 0.8,
               strokeWeight: 2,
-              icons: [
-                {
-                  icon: arrowSymbol,
-                  offset: '100%',  // La flèche sera affichée à la fin de la ligne
-                },
-              ],
             }}
           />
         ))}
