@@ -4,7 +4,7 @@ import MapWrapper, { Polyline } from "../../map/map";
 
 type RawMaterial = {
   id: number;
-  name: string;
+  name: string;  // Ajout du nom pour la matière première
   description: string;
   price: number;
   image: string;
@@ -20,6 +20,7 @@ type Product = {
   ManufacteurId: number;
   produitOriginID: number | null;
   productAddress: string;
+  name: string;  // Ajout du nom pour le produit
 };
 
 type Props = {
@@ -35,7 +36,6 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
 
   const API_KEY = "79e9428274814401aace6fdfdbffb8ae";
 
-  // Helper to geocode addresses
   const geocodeAddress = async (address: string): Promise<[number, number] | null> => {
     try {
       const response = await fetch(
@@ -52,7 +52,6 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
     return null;
   };
 
-  // Fetch product raw materials
   const fetchRawMaterials = async (rwIds: number[]) => {
     try {
       const response = await fetch("http://127.0.0.1:8000/raw_materials");
@@ -64,7 +63,6 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
     }
   };
 
-  // Fetch the origin product
   const fetchOriginProduct = async (originID: number) => {
     try {
       const response = await fetch(`http://127.0.0.1:8000/products/${originID}`);
@@ -75,28 +73,24 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
     }
   };
 
-  // Load current product raw materials and coordinates
   useEffect(() => {
     const loadProductData = async () => {
       const [materials, coordinates] = await Promise.all([
         fetchRawMaterials(product.rwIds),
         geocodeAddress(product.productAddress),
       ]);
-      console.log(product);  // Vérifiez si le produit contient bien tous les attributs
       setRawMaterials(materials);
       setProductCoordinates(coordinates);
     };
     loadProductData();
   }, [product]);
-  
-  // Load origin product and its data
+
   useEffect(() => {
     const loadOriginProductData = async () => {
       if (product.produitOriginID) {
         const origin = await fetchOriginProduct(product.produitOriginID);
         if (origin) {
           setOriginProduct(origin);
-
           const [materials, coordinates] = await Promise.all([
             fetchRawMaterials(origin.rwIds),
             geocodeAddress(origin.productAddress),
@@ -108,6 +102,13 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
     };
     loadOriginProductData();
   }, [product.produitOriginID]);
+
+  // Définir le symbole de flèche
+  const arrowSymbol = {
+    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,  // Symbole de flèche
+    scale: 3,  // Taille de la flèche
+    strokeColor: '#FF0000',  // Couleur de la flèche
+  };
 
   return (
     <MapWrapper
@@ -124,6 +125,7 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
             lat: rm.origin.coordinate[0],
             lng: rm.origin.coordinate[1],
           }}
+          label={rm.name}  // Afficher le nom de la matière première
         />
       ))}
 
@@ -134,6 +136,7 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
             lat: productCoordinates[0],
             lng: productCoordinates[1],
           }}
+          label={product?.name}  // Afficher le nom du produit
         />
       )}
 
@@ -150,6 +153,12 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
               strokeColor: "#FF0000",
               strokeOpacity: 0.8,
               strokeWeight: 2,
+              icons: [
+                {
+                  icon: arrowSymbol,
+                  offset: '100%',  // La flèche sera affichée à la fin de la ligne
+                },
+              ],
             }}
           />
         ))}
@@ -161,6 +170,7 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
             lat: originCoordinates[0],
             lng: originCoordinates[1],
           }}
+          label={originProduct?.name}  // Afficher le nom du produit d'origine
         />
       )}
 
@@ -175,6 +185,12 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
             strokeColor: "#00FF00",
             strokeOpacity: 0.8,
             strokeWeight: 2,
+            icons: [
+              {
+                icon: arrowSymbol,
+                offset: '100%',  // La flèche sera affichée à la fin de la ligne
+              },
+            ],
           }}
         />
       )}
@@ -187,6 +203,7 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
             lat: rm.origin.coordinate[0],
             lng: rm.origin.coordinate[1],
           }}
+          label={rm.name}  // Afficher le nom de la matière première d'origine
         />
       ))}
 
@@ -203,6 +220,12 @@ export const ProductRawMaterialsMap: FC<Props> = ({ product }) => {
               strokeColor: "#0000FF",
               strokeOpacity: 0.8,
               strokeWeight: 2,
+              icons: [
+                {
+                  icon: arrowSymbol,
+                  offset: '100%',  // La flèche sera affichée à la fin de la ligne
+                },
+              ],
             }}
           />
         ))}
