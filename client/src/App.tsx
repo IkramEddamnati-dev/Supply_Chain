@@ -28,8 +28,6 @@ import Box from "@mui/material/Box";
 import { authProvider } from "./authProvider";
 import { DashboardPage } from "./pages/dashboard";
 
-import { ShipmentList } from "./pages/couriers";
-import AuthPage from "./pages/auth";
 import { StoreList, StoreEdit, StoreCreate } from "./pages/stores";
 import { ProductEdit, ProductList, ProductCreate } from "./pages/products";
 import { CategoryList } from "./pages/categories";
@@ -39,6 +37,8 @@ import { useAutoLoginForDemo } from "./hooks";
 import { ProductShow } from "./pages/products/show";
 import PrivateRoute from "./PrivateRoute";
 import { useEffect, useState } from "react";
+import ShipmentList from "./components/courier/ShipmentList";
+import { AuthPage } from "./pages/auth";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -216,7 +216,7 @@ const App: React.FC = () => {
             <Route
               path="/shipements"
               element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<ShipmentList />} />
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ShipmentList data={[]} loading={false} />} />
               }
             />
             

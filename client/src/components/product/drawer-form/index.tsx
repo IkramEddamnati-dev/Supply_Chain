@@ -1,7 +1,6 @@
   import {
     type HttpError,
     useApiUrl,
-    useCustom,
     useGetToPath,
     useGo,
     useTranslate,
@@ -75,6 +74,7 @@ const manufacturerId = manifactureId ? Number(manifactureId) : null;
         price: 0,
         ManufacteurId:manufacturerId,
         categoryId: null,
+        productAddress: "Casablanca",
         isActive: true,
         image: "",
         distributorId:null

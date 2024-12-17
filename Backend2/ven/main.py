@@ -52,8 +52,8 @@ CONTRACT_ADDRESS = network_data["address"]
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 
 # Owner account details
-owner_address = "0x3A822f960C890A3299288A4888352c5cad0faEb0"
-private_key = "0xe01c2c3dc9b80354fa51ea459c3cbd6016181d0577ec7c94ee7ac6b97d8d0145"
+owner_address = "0x53C11588f217fdb6beaFFaa58ABa02051029caA8"
+private_key = "0x9f0920b5b7b7f76feb563859ab0f892d0611ab98c67c6144cc8880c055bf2cc9"
 
 # JWT Secret Key for token generation
 SECRET_KEY = "AZERTGUYIMJLKJ?V123456789LK?NB0JHGFFDJ"
@@ -81,25 +81,6 @@ class RawMaterialCreate(BaseModel):
 class AddCategoryRequest(BaseModel):
     title: str
 
-class AddProductRequest(BaseModel):
-    name: str
-    description: str
-    rwIds: list[int]  # Liste des IDs des matières premières
-    manufacturerId: int
-    categoryId: int
-    image: str
-    distributorId: int
-    price: int  
-
-class EditProductRequest(BaseModel):
-    name: str
-    description: str
-    rwIds: List[int]
-    categoryId: int
-    image: str
-
-class EditCategoryRequest(BaseModel):
-    title: str
 
 
 class UserLogin(BaseModel):
@@ -819,6 +800,7 @@ async def duplicate_product(request: DuplicateProductRequest):
         newPrice =int( request.newPrice  ) 
         rwIds =request.rwIds
         newImage = request.newImage
+        distributorId=request.distributorId
         newAddress=request.newAddress
         manufacturerIdNew=request.manufacturerIdNew
 
@@ -831,6 +813,7 @@ async def duplicate_product(request: DuplicateProductRequest):
             rwIds,
             newPrice,
             manufacturerIdNew,
+            distributorId,
             newAddress,
             newImage,
             

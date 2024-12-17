@@ -34,6 +34,7 @@ class AddProductRequest(BaseModel):
     description: str
     rwIds: list[int]  # Liste des IDs des matières premières
     manufacturerId: int
+    distributorId:int
     categoryId: int
     image: str
     price: float  
@@ -54,6 +55,7 @@ class DuplicateProductRequest(BaseModel):
     newDescription:str
     newAddress:str
     manufacturerIdNew:int
+    distributorId:int
     newPrice: float
     newImage: str
     rwIds: list[int]

@@ -6,13 +6,8 @@ contract SupplyChain {
     address public Owner;
 
     struct Address {
-<<<<<<< HEAD
         string text;                
         int256[2] coordinate;     
-=======
-        string text; // Adresse sous forme de texte
-        int256[2] coordinate; // Tableau de coordonnées [latitude, longitude]
->>>>>>> 1a37127ced6b314ad10c841781c9d72216a37cbd
     }
 
     struct Category {
@@ -58,10 +53,7 @@ contract SupplyChain {
         Category category;
         uint256 manufacturerId;
         uint256 distributorId;
-<<<<<<< HEAD
         string productAddress;  // Renommé pour éviter conflit avec le type address
-=======
->>>>>>> 1a37127ced6b314ad10c841781c9d72216a37cbd
         bool isActive;
         string image;
         uint256 produitOriginID;
@@ -75,26 +67,16 @@ contract SupplyChain {
         uint256 price;
         uint256 userId;
         string image;
-<<<<<<< HEAD
         Address origin; 
-=======
-        Address origin;
->>>>>>> 1a37127ced6b314ad10c841781c9d72216a37cbd
     }
 
     struct User {
         uint256 id;
         string name;
         string email;
-<<<<<<< HEAD
-        bytes32 passwordHash; 
-        string role; 
-        string location;
-=======
         bytes32 passwordHash;
         string role;
         string userAddress;
->>>>>>> 1a37127ced6b314ad10c841781c9d72216a37cbd
     }
 
     struct ProductHistory {
@@ -188,6 +170,7 @@ contract SupplyChain {
     uint256[] memory _rwIds,
     uint256 _price,
     uint256 _manufacturerId,
+     uint256 _distributorId,
     uint256 _categoryId,
     string memory _productAddress,
     string memory _image
@@ -212,13 +195,26 @@ contract SupplyChain {
         price: _price,
         category: categories[_categoryId],
         manufacturerId: _manufacturerId,
-        distributorId: 0,
+        distributorId: _distributorId,
         productAddress: _productAddress,
         produitOriginID: 0,
         stage: STAGE.Manufacture,
         isActive: true,
         image: _image
     });
+    for (uint256 i = 0; i < _rwIds.length; i++) {
+            uint256 rwId = _rwIds[i];
+            require(rms[rwId].id != 0, "Invalid raw material ID.");
+            createShipment(
+                rms[rwId].userId,
+                _manufacturerId,
+                _distributorId,
+                block.timestamp,
+                100,
+                100,
+                rms[rwId].description
+            );
+        }
 
     // Émettre l'événement
     emit ProductAdded(productCtr, _name);
@@ -230,6 +226,7 @@ function duplicateProduct(
     uint256[] memory _rwIds,
     uint256 _price,
     uint256 _manufacturerId,
+     uint256 _distributorId,
     string memory _productAddress,
     string memory _image
 ) public onlyByOwner {
@@ -259,13 +256,26 @@ function duplicateProduct(
         price: _price,
         category: originalProduct.category,
         manufacturerId: _manufacturerId,
-        distributorId: 0,
+        distributorId: _distributorId,
         productAddress: _productAddress,
         produitOriginID: originalProduct.id,
         stage: STAGE.Manufacture,
         isActive: true,
         image: _image
     });
+    for (uint256 i = 0; i < _rwIds.length; i++) {
+            uint256 rwId = _rwIds[i];
+            require(rms[rwId].id != 0, "Invalid raw material ID.");
+            createShipment(
+                rms[rwId].userId,
+                _manufacturerId,
+                _distributorId,
+                block.timestamp,
+                100,
+                100,
+                rms[rwId].description
+            );
+        }
 
     // Émettre un événement pour signaler la création du nouveau produit
     emit ProductAdded(productCtr, _name);
@@ -288,11 +298,7 @@ function duplicateProduct(
         string memory _email,
         string memory _password,
         string memory _role,
-<<<<<<< HEAD
-        string memory _location
-=======
         string memory _userAddress
->>>>>>> 1a37127ced6b314ad10c841781c9d72216a37cbd
     ) public {
         require(bytes(_name).length > 0, "Name cannot be empty");
         require(bytes(_email).length > 0, "Email cannot be empty");
@@ -304,80 +310,12 @@ function duplicateProduct(
             email: _email,
             passwordHash: keccak256(abi.encodePacked(_password)),
             role: _role,
-<<<<<<< HEAD
-            location:_location
-        });
-    }
-
-=======
             userAddress: _userAddress
         });
     }
 
-    // Ajouter un produit
-    function addProduct(
-        string memory _name,
-        string memory _description,
-        uint256[] memory _rwIds,
-        uint256 _manufacturerId,
-        uint256 _distributorId,
-        uint256 _categoryId,
-        uint256 _price, // Ajouter le prix comme paramètre
-        string memory _image
-    ) public onlyByOwner {
-        require(_rwIds.length > 0, "Product must contain raw materials.");
-        // Vérification des IDs de matières premières
-        for (uint256 i = 0; i < _rwIds.length; i++) {
-            require(
-                _rwIds[i] > 0 && _rwIds[i] <= rmsCtr,
-                "Invalid raw material ID"
-            );
-        }
+   
 
-        // Vérification de la validité de la catégorie
-        require(
-            _categoryId > 0 && _categoryId <= categoryCtr,
-            "Invalid category ID"
-        );
-
-        // Incrémentation du compteur de produits
-        productCtr++;
-
-        // Création du produit
-        productStock[productCtr] = Product({
-            id: productCtr,
-            name: _name,
-            description: _description,
-            rwIds: _rwIds,
-            price: _price, // Assignation du prix
-            category: categories[_categoryId],
-            manufacturerId: _manufacturerId,
-            distributorId: _distributorId,
-            currentHandlerId: _manufacturerId,
-            stage: STAGE.Manufacture, // Le stade initial est la fabrication
-            isActive: true,
-            image: _image
-        });
-
-        for (uint256 i = 0; i < _rwIds.length; i++) {
-            uint256 rwId = _rwIds[i];
-            require(rms[rwId].id != 0, "Invalid raw material ID.");
-            createShipment(
-                rms[rwId].userId,
-                _manufacturerId,
-                _distributorId,
-                block.timestamp,
-                100,
-                100,
-                rms[rwId].description
-            );
-        }
-
-        // Émettre l'événement
-        emit ProductAdded(productCtr, _name);
-    }
-
->>>>>>> 1a37127ced6b314ad10c841781c9d72216a37cbd
     // Obtenir un produit par ID
     function getProductById(
         uint256 _productId
@@ -469,11 +407,7 @@ function duplicateProduct(
         productHistories[_productId].push(
             ProductHistory({
                 timestamp: block.timestamp,
-<<<<<<< HEAD
-                handlerId: productStock[_productId].manufacturerId,
-=======
                 handlerId: _productId,
->>>>>>> 1a37127ced6b314ad10c841781c9d72216a37cbd
                 stage: _newStage
             })
         );
@@ -608,22 +542,7 @@ function duplicateProduct(
             "Produit inexistant"
         );
 
-<<<<<<< HEAD
-    return allUsers;
-}
-// Obtenir l'historique complet d'un produit par son ID
-function getProductHistory(uint256 _productId) public view returns (ProductHistory[] memory) {
-    // Vérification que l'ID du produit est valide
-    require(_productId > 0 && _productId <= productCtr, "Produit inexistant");
-
-    // Retourne l'historique du produit
-    return productHistories[_productId];
-}
-
-
-=======
         // Retourne l'historique du produit
         return productHistories[_productId];
     }
->>>>>>> 1a37127ced6b314ad10c841781c9d72216a37cbd
 }
