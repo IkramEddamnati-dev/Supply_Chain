@@ -539,16 +539,19 @@ def add_category(request: AddCategoryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/products/")
-async def create_product(product: AddProductRequest):
+async def add_product(product: AddProductRequest):
     try:
-        # Validation des IDs de matières premières
-        if any(rw_id <= 0 for rw_id in product.rwIds):
-            raise HTTPException(status_code=400, detail="Invalid raw material ID(s)")
+        # Vérification de la validité des IDs de matières premières (par rapport à votre logique Solidity)
+        for rw_id in product.rwIds:
+            if rw_id <= 0 or rw_id > 1000:  # Ajustez cette logique en fonction de votre contrat
+                raise HTTPException(status_code=400, detail=f"Invalid raw material ID: {rw_id}")
 
-        # Obtenir le nonce pour le wallet du propriétaire
+        # Vérification de la validité de la catégorie
+        if product.categoryId <= 0 or product.categoryId > 1000:  # Ajustez cette logique
+            raise HTTPException(status_code=400, detail="Invalid category ID")
+
+        # Construction de la transaction
         nonce = w3.eth.get_transaction_count(owner_address)
-
-        # Construire la transaction
         tx = contract.functions.addProduct(
             product.name,
             product.description,
@@ -559,31 +562,29 @@ async def create_product(product: AddProductRequest):
             product.categoryId,
             product.productAddress,
             product.image
-        ).buildTransaction({
-            'chainId': 1,  # ID du réseau (Mainnet = 1, Testnet = selon votre réseau)
-            'gas': 3000000,  # Limite du gas
-            'gasPrice': w3.toWei('20', 'gwei'),  # Prix du gas
+        ).build_transaction({
+            'chainId': 1337,  # ID de votre réseau (1337 = Ganache local, ajustez selon votre réseau)
+            'gas': 2000000,
+            'gasPrice': w3.to_wei('20', 'gwei'),
             'nonce': nonce,
-            'from': owner_address
         })
 
-        # Signer la transaction
+        # Signature et envoi de la transaction
         signed_tx = w3.eth.account.sign_transaction(tx, private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-        # Envoyer la transaction
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-
-        # Attendre la confirmation de la transaction
+        # Attente du reçu de la transaction
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
-        # Vérifier le statut de la transaction
+        # Vérification du statut de la transaction
         if receipt.status == 1:
             return {"status": "success", "tx_hash": tx_hash.hex()}
         else:
             raise HTTPException(status_code=400, detail="Transaction failed")
-
+    
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))  
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Récupérer une catégorie par ID
 @app.get("/get_category/{category_id}")
 def get_category(category_id: int):
