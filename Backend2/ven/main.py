@@ -541,40 +541,49 @@ def add_category(request: AddCategoryRequest):
 @app.post("/products/")
 async def create_product(product: AddProductRequest):
     try:
-        
+        # Validation des IDs de matières premières
         if any(rw_id <= 0 for rw_id in product.rwIds):
             raise HTTPException(status_code=400, detail="Invalid raw material ID(s)")
 
-        # Call createProduct function in smart contract
+        # Obtenir le nonce pour le wallet du propriétaire
         nonce = w3.eth.get_transaction_count(owner_address)
+
+        # Construire la transaction
         tx = contract.functions.addProduct(
             product.name,
             product.description,
             product.rwIds,
             int(product.price),
-            product.distributorId,
             product.manufacturerId,
+            product.distributorId,
             product.categoryId,
             product.productAddress,
             product.image
-        ).transact({'from': w3.eth.accounts[0]})  # Adresse à remplacer si nécessaire
+        ).buildTransaction({
+            'chainId': 1,  # ID du réseau (Mainnet = 1, Testnet = selon votre réseau)
+            'gas': 3000000,  # Limite du gas
+            'gasPrice': w3.toWei('20', 'gwei'),  # Prix du gas
+            'nonce': nonce,
+            'from': owner_address
+        })
 
-        # Sign and send the transaction
+        # Signer la transaction
         signed_tx = w3.eth.account.sign_transaction(tx, private_key)
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-        # Wait for transaction receipt
+        # Envoyer la transaction
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+
+        # Attendre la confirmation de la transaction
         receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        # Vérifier le statut de la transaction
         if receipt.status == 1:
             return {"status": "success", "tx_hash": tx_hash.hex()}
         else:
             raise HTTPException(status_code=400, detail="Transaction failed")
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-   
+        raise HTTPException(status_code=400, detail=str(e))  
 # Récupérer une catégorie par ID
 @app.get("/get_category/{category_id}")
 def get_category(category_id: int):

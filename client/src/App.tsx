@@ -38,7 +38,7 @@ import { ProductShow } from "./pages/products/show";
 import PrivateRoute from "./PrivateRoute";
 import { useEffect, useState } from "react";
 import ShipmentList from "./components/courier/ShipmentList";
-import { AuthPage } from "./pages/auth";
+import AuthPage  from "./pages/auth";
 
 const API_URL = "http://127.0.0.1:8000";
 

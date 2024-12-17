@@ -85,7 +85,7 @@ export interface IProduct {
   description: string;
   image: string;
   rwIds: number[];
-  ManufacteurId: number;
+  manufacturerId: number;
   price: number;
   categoryId: ICategory;  // This is now correctly referencing the ICategory type
   produitOriginID: number;

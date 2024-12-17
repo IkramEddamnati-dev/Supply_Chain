@@ -72,7 +72,7 @@ const manufacturerId = manifactureId ? Number(manifactureId) : null;
         description: "",
         rwIds:[],
         price: 0,
-        ManufacteurId:manufacturerId,
+        manufacturerId:manufacturerId,
         categoryId: null,
         productAddress: "Casablanca",
         isActive: true,
@@ -347,12 +347,12 @@ const manufacturerId = manifactureId ? Number(manifactureId) : null;
                               {...params}
                               label="Distribution"
                               variant="outlined"
-                              error={!!errors.ManufacteurId}
-                              helperText={errors.ManufacteurId?.message} />
+                              error={!!errors.manufacturerId}
+                              helperText={errors.manufacturerId?.message} />
                           )} />
                       )} />
-                    {errors.ManufacteurId && (
-                      <FormHelperText error>{errors.ManufacteurId.message}</FormHelperText>
+                    {errors.manufacturerId && (
+                      <FormHelperText error>{errors.manufacturerId.message}</FormHelperText>
                     )}
                   </FormControl><FormControl fullWidth>
                     <Controller

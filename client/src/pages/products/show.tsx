@@ -72,7 +72,7 @@ export const ProductShow = () => {
                 },
               }}
             >
-            <ProductRawMaterialsMap product={record ? { id: record.id, rwIds: record.rwIds ,ManufacteurId:record.ManufacteurId,produitOriginID:record.produitOriginID,productAddress:record.productAddress} : { id: 0, rwIds: [],ManufacteurId:0 ,produitOriginID:0,productAddress:"Casablanca"}} />
+            <ProductRawMaterialsMap product={record ? { id: record.id, rwIds: record.rwIds ,ManufacteurId:record.manufacturerId,produitOriginID:record.produitOriginID,productAddress:record.productAddress} : { id: 0, rwIds: [],ManufacteurId:0 ,produitOriginID:0,productAddress:"Casablanca"}} />
             </Card>
             <Grid xs={12} md={6} lg={4} height="max-content">
             <Card title={t("orders.titles.deliveryDetails")}>
