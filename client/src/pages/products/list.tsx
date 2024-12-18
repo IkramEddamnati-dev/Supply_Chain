@@ -1,4 +1,4 @@
-import React, { type PropsWithChildren, useState } from "react";
+import React, { PropsWithChildren, useState } from "react";
 import { useTranslate, useGo, useNavigation, useList } from "@refinedev/core";
 import { CreateButton, useAutocomplete, useDataGrid } from "@refinedev/mui";
 import ListOutlinedIcon from "@mui/icons-material/ListOutlined";
@@ -25,6 +25,7 @@ const style = {
   boxShadow: 24,
   p: 4,
 };
+
 import {
   ProductListCard,
   ProductListTable,
@@ -32,8 +33,8 @@ import {
 } from "../../components";
 import type { ICategory, IProduct, IUser } from "../../interfaces";
 
-type RWId = { id: number; name: string }; // Définir le type pour RawMaterial
-
+type RWId = { id: number; name: string };
+type UserId = { id: number; name: string };
 type View = "table" | "card";
 
 export const ProductList = ({ children }: PropsWithChildren) => {
@@ -41,7 +42,7 @@ export const ProductList = ({ children }: PropsWithChildren) => {
     const view = localStorage.getItem("product-view") as View;
     return view || "table";
   });
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const go = useGo();
@@ -49,15 +50,19 @@ export const ProductList = ({ children }: PropsWithChildren) => {
   const { pathname } = useLocation();
   const { createUrl } = useNavigation();
   const t = useTranslate();
+  const manifactureId = localStorage.getItem("userId");
+
+  const manufacturerId = manifactureId ? Number(manifactureId) : null;
   const [formValues, setFormValues] = useState({
     produitOriginID: 0,
     newName: "",
     newPrice: "",
-    rwIds: [] as RWId[], // Assurez-vous que rwIds est de type RWId[]
+    rwIds: [] as RWId[],
     newDescription: "",
     newImage: "",
     newAddress: "",
-    manufacturerIdNew: 1,
+    manufacturerIdNew: manufacturerId,
+    distributorId: null as UserId | null,
   });
 
   const dataGrid = useDataGrid<IProduct>({
@@ -66,6 +71,7 @@ export const ProductList = ({ children }: PropsWithChildren) => {
       pageSize: 12,
     },
   });
+
   const storedRole = localStorage.getItem("userRole");
 
   const { data: categoriesData } = useList<ICategory>({
@@ -76,11 +82,15 @@ export const ProductList = ({ children }: PropsWithChildren) => {
   });
   const categories = categoriesData?.data || [];
 
-  const { autocompleteProps: manufacturersData } = useAutocomplete({
-    resource: "users",  
-    
+  const { autocompleteProps: user } = useAutocomplete({
+    resource: "users/Distribution",
   });
-  const manufacturers = manufacturersData?.options || [];
+  const { autocompleteProps: products } = useAutocomplete({
+    resource: "products",
+  });
+  const productsID = products?.options || [];
+
+  const distrubuteurs = user?.options || [];
 
   const { autocompleteProps: rawMaterialsAutocompleteProps } = useAutocomplete({
     resource: "raw_materials",
@@ -92,29 +102,47 @@ export const ProductList = ({ children }: PropsWithChildren) => {
     setFormValues({ ...formValues, [name]: value });
   };
 
-  const handleViewChange = (
-    _e: React.MouseEvent<HTMLElement>,
-    newView: View,
-  ) => {
+  const handleViewChange = (_e: React.MouseEvent<HTMLElement>, newView: View) => {
     replace("");
     setView(newView);
     localStorage.setItem("product-view", newView);
   };
 
-  const handleSubmit = async () => {
+  const validateForm = () => {
+    // Check for required fields
+    if (!formValues.produitOriginID || !formValues.newName || !formValues.newPrice || !formValues.distributorId) {
+      return false;
+    }
+
+    // Validate rwIds
+    if (formValues.rwIds.length === 0) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent the default form submission
+  
+    if (!validateForm()) {
+      alert("Please fill in all required fields correctly.");
+      return;
+    }
+  
     const backendUrl = "http://127.0.0.1:8000/duplicate_product"; 
     const payload = {
-      produitOriginID: formValues.produitOriginID,
+      produitOriginID: formValues.produitOriginID ? formValues.produitOriginID.id : null, // Only pass the ID
+      distributorId: formValues.distributorId ? formValues.distributorId.id : null, // Only pass the ID
       newName: formValues.newName,
-      
       newDescription: formValues.newDescription,
-      rwIds: formValues.rwIds,
+      rwIds: formValues.rwIds.map((rw) => rw.id), // Ensure rwIds contains only IDs
       newPrice: formValues.newPrice,
       newImage: formValues.newImage,
       newAddress: formValues.newAddress,
       manufacturerIdNew: formValues.manufacturerIdNew,
     };
-
+  
     try {
       const response = await fetch(backendUrl, {
         method: "POST",
@@ -123,7 +151,7 @@ export const ProductList = ({ children }: PropsWithChildren) => {
         },
         body: JSON.stringify(payload),
       });
-
+  
       if (response.ok) {
         const data = await response.json();
         console.log("Produit dupliqué avec succès :", data);
@@ -136,6 +164,7 @@ export const ProductList = ({ children }: PropsWithChildren) => {
       handleClose();
     }
   };
+  
 
   return (
     <>
@@ -156,27 +185,27 @@ export const ProductList = ({ children }: PropsWithChildren) => {
             </ToggleButton>
           </ToggleButtonGroup>,
           storedRole !== "Customer" && (
-          <CreateButton
-            {...props.createButtonProps}
-            key="create"
-            size="medium"
-            sx={{ height: "40px" }}
-            onClick={() => {
-              return go({
-                to: `${createUrl("products")}`,
-                query: {
-                  to: pathname,
-                },
-                options: {
-                  keepQuery: true,
-                },
-                type: "replace",
-              });
-            }}
-          >
-            {t("products.actions.add")}
-          </CreateButton>),
-         
+            <CreateButton
+              {...props.createButtonProps}
+              key="create"
+              size="medium"
+              sx={{ height: "40px" }}
+              onClick={() => {
+                return go({
+                  to: `${createUrl("products")}`,
+                  query: {
+                    to: pathname,
+                  },
+                  options: {
+                    keepQuery: true,
+                  },
+                  type: "replace",
+                });
+              }}
+            >
+              {t("products.actions.add")}
+            </CreateButton>
+          ),
           <Button onClick={handleOpen}>Add From other Product</Button>
         ]}
       >
@@ -189,87 +218,139 @@ export const ProductList = ({ children }: PropsWithChildren) => {
           <ProductListCard {...dataGrid} categories={categories} />
         )}
       </RefineListView>
-
       <Modal
         open={open}
         onClose={handleClose}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
       >
-        <Box sx={style}>
+        <Box
+          sx={{
+            ...style,
+            maxHeight: "90vh", 
+            overflowY: "auto", 
+          }}
+        >
           <Typography id="modal-modal-title" variant="h6" component="h2">
             {t("products.actions.add")}
           </Typography>
-          <form onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={handleSubmit}> {/* Attach handleSubmit here */}
+            <Autocomplete
+              options={productsID}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, value) => {
+                setFormValues({ ...formValues, produitOriginID: value });
+              }}
+              value={formValues.produitOriginID}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Select Product"
+                  margin="normal"
+                  variant="outlined"
+                />
+              )}
+            />
+
             <TextField
-              label="New Name"
               name="newName"
               value={formValues.newName}
               onChange={handleChange}
-              fullWidth
+              label="Product Name"
               margin="normal"
+              variant="outlined"
+              fullWidth
             />
+
             <TextField
-              label="New Price"
               name="newPrice"
               value={formValues.newPrice}
               onChange={handleChange}
-              fullWidth
+              label="Price"
               margin="normal"
+              variant="outlined"
+              fullWidth
               type="number"
             />
+
             <TextField
-              label="New Description"
               name="newDescription"
               value={formValues.newDescription}
               onChange={handleChange}
-              fullWidth
+              label="Description"
               margin="normal"
+              variant="outlined"
+              fullWidth
             />
+
             <TextField
-              label="New Image URL"
               name="newImage"
               value={formValues.newImage}
               onChange={handleChange}
-              fullWidth
+              label="Image URL"
               margin="normal"
+              variant="outlined"
+              fullWidth
             />
+
             <TextField
-              label="New Address"
               name="newAddress"
               value={formValues.newAddress}
               onChange={handleChange}
-              fullWidth
+              label="Address"
               margin="normal"
+              variant="outlined"
+              fullWidth
             />
 
             <Autocomplete
-              options={manufacturers}
+              options={distrubuteurs}
               getOptionLabel={(option) => option.name}
-isOptionEqualToValue={(option, value) => option.id === value.id}
-              onChange={(_, newValue) => {
-                setFormValues({ ...formValues, manufacturerIdNew: newValue?.id || 0 });
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, value) => {
+                setFormValues({ ...formValues, distributorId: value });
               }}
-              value={formValues.manufacturerIdNew}
+              value={formValues.distributorId}
               renderInput={(params) => (
-                <TextField {...params} label="Manufacturer" fullWidth margin="normal" />
+                <TextField
+                  {...params}
+                  label="Distributor"
+                  margin="normal"
+                  variant="outlined"
+                  fullWidth
+                />
               )}
             />
 
             <Autocomplete
               multiple
               options={rwIds}
-              getOptionLabel={(option) => option.name} // Affiche le nom dans la liste
+              getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               onChange={(_, value) => {
-                // Met à jour la valeur de rwIds avec les IDs sélectionnés
                 setFormValues({ ...formValues, rwIds: value });
               }}
               value={formValues.rwIds}
-              renderInput={(params) => <TextField {...params} label="Raw Materials" />}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Raw Materials"
+                  margin="normal"
+                  variant="outlined"
+                  fullWidth
+                />
+              )}
             />
 
-            <Button onClick={handleSubmit}>Submit</Button>
+            <Box sx={{ marginTop: 2 }}>
+              <Button variant="contained" color="primary" type="submit">
+                Submit
+              </Button>
+              <Button variant="outlined" color="secondary" onClick={handleClose}>
+                Cancel
+              </Button>
+            </Box>
           </form>
         </Box>
       </Modal>

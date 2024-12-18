@@ -52,9 +52,8 @@ CONTRACT_ADDRESS = network_data["address"]
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=contract_abi)
 
 # Owner account details
-owner_address = "0x53C11588f217fdb6beaFFaa58ABa02051029caA8"
-private_key = "0x9f0920b5b7b7f76feb563859ab0f892d0611ab98c67c6144cc8880c055bf2cc9"
-
+owner_address = "0x5c8b23638aCA975e6841C0e7DeD38F8D1f31310A"
+private_key = "0x960a980bbcfb05f132f8bbf21ec76647cf5c47a217ac9b1080f6aecd4c0d56b8"
 # JWT Secret Key for token generation
 SECRET_KEY = "AZERTGUYIMJLKJ?V123456789LK?NB0JHGFFDJ"
 ALGORITHM = "HS256"
@@ -193,6 +192,7 @@ async def login(user: UserLogin):
 async def add_user(user: UserCreate):
     try:
         nonce = w3.eth.get_transaction_count(owner_address)
+        
         tx = contract.functions.addUser(
             user.name,
             user.email,

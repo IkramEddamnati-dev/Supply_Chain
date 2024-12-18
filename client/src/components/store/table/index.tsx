@@ -59,7 +59,7 @@ export const StoreTable = () => {
     },
     {
       field: "price",
-      headerName: "price",
+      headerName: "price ($)",
       minWidth: 132,
     },
     {

@@ -9,25 +9,17 @@ import {
 import GlobalStyles from "@mui/material/GlobalStyles";
 import CssBaseline from "@mui/material/CssBaseline";
 import dataProvider from "@refinedev/simple-rest";
-import routerProvider, {
-  CatchAllNavigate,
-  NavigateToResource,
-  UnsavedChangesNotifier,
-  DocumentTitleHandler,
-} from "@refinedev/react-router-v6";
+import routerProvider from "@refinedev/react-router-v6";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import MopedOutlined from "@mui/icons-material/MopedOutlined";
 import Dashboard from "@mui/icons-material/Dashboard";
-import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import FastfoodOutlinedIcon from "@mui/icons-material/FastfoodOutlined";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import StoreOutlinedIcon from "@mui/icons-material/StoreOutlined";
-import Box from "@mui/material/Box";
 import { authProvider } from "./authProvider";
 import { DashboardPage } from "./pages/dashboard";
-
 import { StoreList, StoreEdit, StoreCreate } from "./pages/stores";
 import { ProductEdit, ProductList, ProductCreate } from "./pages/products";
 import { CategoryList } from "./pages/categories";
@@ -37,7 +29,7 @@ import { useAutoLoginForDemo } from "./hooks";
 import { ProductShow } from "./pages/products/show";
 import PrivateRoute from "./PrivateRoute";
 import { useEffect, useState } from "react";
-import ShipmentList from "./components/courier/ShipmentList";
+import { ShipmentList }from "./pages/couriers";
 import AuthPage  from "./pages/auth";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -216,7 +208,7 @@ const App: React.FC = () => {
             <Route
               path="/shipements"
               element={
-                <PrivateRoute isAuthenticated={isAuthenticated} element={<ShipmentList data={[]} loading={false} />} />
+                <PrivateRoute isAuthenticated={isAuthenticated} element={<ShipmentList />} />
               }
             />
             

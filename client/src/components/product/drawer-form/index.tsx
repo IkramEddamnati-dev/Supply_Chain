@@ -77,7 +77,8 @@ const manufacturerId = manifactureId ? Number(manifactureId) : null;
         productAddress: "Casablanca",
         isActive: true,
         image: "",
-        distributorId:null
+        distributorId:null,
+        
       },
       refineCoreProps: {
         redirect: false,
@@ -152,7 +153,7 @@ const manufacturerId = manifactureId ? Number(manifactureId) : null;
         onClose={onDrawerCLose}
       >
         <DrawerHeader
-          title={t("products.actions.edit")}
+          title={t("products.actions.add")}
           onCloseClick={onDrawerCLose}
         />
         <form

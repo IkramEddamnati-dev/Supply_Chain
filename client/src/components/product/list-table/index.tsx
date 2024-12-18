@@ -26,8 +26,8 @@ export const ProductListTable = (props: Props) => {
     () => [
       {
         field: "id",
-        headerName: "ID #",
-        description: "ID #",
+        headerName: "ID ",
+        description: "ID ",
         width: 52,
         renderCell: function render({ row }) {
           return <Typography>#{row.id}</Typography>;
@@ -74,6 +74,7 @@ export const ProductListTable = (props: Props) => {
         sortable: false,
         align: "right",
         headerAlign: "right",
+        
         renderCell: function render({ row }) {
           return (
             <NumberField

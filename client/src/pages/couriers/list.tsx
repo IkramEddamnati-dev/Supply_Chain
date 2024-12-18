@@ -172,9 +172,9 @@ const handleAlertClose = () => {
                       handleStartShipment();
                     }}
                     size="small"
-                    sx={{ minWidth: 60 }} 
+                    sx={{ minWidth: 40 }} 
                   >
-                    <PlayArrow  sx={{ fontSize: 25 }}/>
+                    <PlayArrow  sx={{ fontSize: 30 }}/>
                   </Button>
                 </Tooltip>
               )}
@@ -188,9 +188,9 @@ const handleAlertClose = () => {
                       handleCompleteShipment();
                     }}
                     size="small"
-                    sx={{ minWidth: 60 }}
+                    sx={{ minWidth: 40 }}
                   >
-                    <CheckCircle sx={{ fontSize: 25 }}/>
+                    <CheckCircle sx={{ fontSize: 27 }}/>
                   </Button>
                 </Tooltip>
               )}
